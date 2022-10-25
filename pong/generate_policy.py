@@ -45,24 +45,6 @@ parser.add_argument(
 
 parameters = parser.parse_args()
 file: str = parameters.file
-env: str = parameters.env
-timesteps: int = parameters.timesteps
-seed: int = parameters.seed
-verbose: bool = parameters.verbose
-
-
-model = model = DQN(
-    "MlpPolicy",
-    env,
-    verbose=int(verbose),
-    exploration_final_eps=0.1,
-    target_update_interval=250,
-    seed=seed
-)
-
-
-parameters = parser.parse_args()
-file: str = parameters.file
 env_id: str = parameters.env
 timesteps: int = parameters.timesteps
 seed: int = parameters.seed
