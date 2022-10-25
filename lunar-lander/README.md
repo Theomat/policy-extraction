@@ -20,7 +20,7 @@ python generate_policy.py my_dqn.pt --env "LunarLander-v2"
 
 will output a `my_dqn.pt` model file.
 
-## Extracting a Decition Tree from a Policy
+## Extracting a Decision Tree from a Policy
 
 You can extract the policy using:
 
