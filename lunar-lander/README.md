@@ -1,5 +1,16 @@
 # Lunar Lander experiment
 
+Once the setup is done, the experiment can be done by executing the ``experiment.sh`` script.
+
+<!-- toc -->
+Table of contents:
+
+- [Setup](#setup)
+- [Generating a Policy](#generating-a-policy)
+- [Extracting a Decision Tree from a Policy](#extracting-a-decision-tree-from-a-policy)
+
+<!-- tocstop -->
+
 ## Setup
 
 ```bash
@@ -29,3 +40,4 @@ python -m polext extract.py my_dqn.pt
 ```
 
 TODO test
+

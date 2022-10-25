@@ -5,7 +5,18 @@ This is the repository for the code of the paper TODO.
 **Authors**:
 [Théo Matricon](https://theomat.github.io/), [Nathanaël Fijalkow](https://nathanael-fijalkow.github.io/)
 
-TODO SOME FIGURE EHRE
+<!-- toc -->
+Table of contents:
+
+- [Abstract](#abstract)
+- [Usage](#usage)
+  - [Installation](#installation)
+  - [Reproducing the experiments](#reproducing-the-experiments)
+- [Citing](#citing)
+
+<!-- tocstop -->
+
+TODO SOME FIGURE HERE
 
 ## Abstract
 
