@@ -26,24 +26,9 @@ cd ..
 
 ### Reproducing the experiments
 
-1. First, move into the experiment folder and install the requirements with:
+Please see each README file in the following folders:
 
-```bash
-pip install -r requirements.txt
-```
-
-2. You need to generate the policies, if there is no ``.pt`` file with:
-
-```bash
-python generate_policy.py <file_name>.pt
-```
-
-3. You can now extract the policy with:
-
-```bash
-python -m polext extract.py <file_name>.pt
-```
-
+- `lunar-lander` for the lunar lander experiment
 TODO
 
 ## Citing
