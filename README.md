@@ -39,7 +39,8 @@ cd ..
 
 Please see each README file in the following folders:
 
-- `lunar-lander` for the lunar lander experiment
+- `lunar-lander` for the Lunar Lander experiment
+- `pong` for the Atari Pong experiment
 TODO
 
 ## Citing
