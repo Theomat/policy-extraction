@@ -57,7 +57,7 @@ model = DQN(
     verbose=int(verbose),
     exploration_final_eps=0.1,
     target_update_interval=250,
-    seed=seed
+    seed=seed,
 )
 
 # Separate env for evaluation
@@ -92,9 +92,13 @@ try:
     obs = env.reset()
 
     # Record the video starting at the first step
-    env = VecVideoRecorder(env, video_folder,
-                        record_video_trigger=lambda x: x == 0, video_length=video_length,
-                        name_prefix=f"dqn-{env_id}")
+    env = VecVideoRecorder(
+        env,
+        video_folder,
+        record_video_trigger=lambda x: x == 0,
+        video_length=video_length,
+        name_prefix=f"dqn-{env_id}",
+    )
 
     obs = env.reset()
     for _ in range(video_length + 1):
@@ -103,4 +107,6 @@ try:
     # Save the video
     env.close()
 except NameError:
-    print("Failed to record episode, check that you have ffmpeg installed if you would like a video.")
+    print(
+        "Failed to record episode, check that you have ffmpeg installed if you would like a video."
+    )

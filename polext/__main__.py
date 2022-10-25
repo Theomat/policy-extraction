@@ -1,9 +1,8 @@
 if __name__ == "__main__":
     import argparse
 
-
-    parser = argparse.ArgumentParser(prog="polext",
-        description="Extract a Decision Tree from a DQN"
+    parser = argparse.ArgumentParser(
+        prog="polext", description="Extract a Decision Tree from a DQN"
     )
     parser.add_argument(
         type=str,
@@ -18,9 +17,8 @@ if __name__ == "__main__":
         help="DQN model file to load",
     )
 
-
     parameters = parser.parse_args()
     script_path: str = parameters.script_path
     model_path: str = parameters.model_path
 
-    #TODO: call method
+    # TODO: call method
