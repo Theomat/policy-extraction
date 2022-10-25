@@ -6,13 +6,20 @@ import argparse
 
 
 parser = argparse.ArgumentParser(
-    description="Generate a trained policy network for Lunar Lander"
+    description="Generate a trained DQN network for a gym environment"
 )
 parser.add_argument(
     type=str,
     dest="file",
     action="store",
     help="destination file for the model",
+)
+parser.add_argument(
+    "-e",
+    "--env",
+    type=str,
+    default="LunarLander-v2",
+    help="name of the environment (default: LunarLander-v2)",
 )
 parser.add_argument(
     "-t",
@@ -25,12 +32,13 @@ parser.add_argument(
 
 parameters = parser.parse_args()
 file: str = parameters.file
+env: str = parameters.env
 timesteps: int = parameters.timesteps
 
 
 model = model = DQN(
     "MlpPolicy",
-    "LunarLander-v2",
+    env,
     verbose=1,
     exploration_final_eps=0.1,
     target_update_interval=250,
@@ -38,7 +46,7 @@ model = model = DQN(
 
 
 # Separate env for evaluation
-eval_env = gym.make("LunarLander-v2")
+eval_env = gym.make(env)
 
 
 # Random Agent, before training
