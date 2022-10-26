@@ -6,7 +6,7 @@ import argparse
 
 
 parser = argparse.ArgumentParser(
-    description="Generate a trained DQN network for a gym environment"
+    description="Generate a trained DQN network on a gym environment"
 )
 parser.add_argument(
     type=str,
@@ -15,11 +15,9 @@ parser.add_argument(
     help="destination file for the model",
 )
 parser.add_argument(
-    "-e",
-    "--env",
     type=str,
-    default="LunarLander-v2",
-    help="name of the environment (default: LunarLander-v2)",
+    dest="env_id",
+    help="name of the environment",
 )
 parser.add_argument(
     "-t",
@@ -45,7 +43,7 @@ parser.add_argument(
 
 parameters = parser.parse_args()
 file: str = parameters.file
-env_id: str = parameters.env
+env_id: str = parameters.env_id
 timesteps: int = parameters.timesteps
 seed: int = parameters.seed
 verbose: bool = parameters.verbose
@@ -80,34 +78,3 @@ mean_reward, std_reward = evaluate_policy(
 )
 print(f"Before training mean_reward={bmean_reward:.2f} +/- {bstd_reward}")
 print(f"After training mean_reward={mean_reward:.2f} +/- {std_reward}")
-
-try:
-    from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv
-
-    video_folder = "videos/"
-    video_length = int(1e8)
-
-    env = DummyVecEnv([lambda: gym.make(env_id)])
-
-    obs = env.reset()
-
-    # Record the video starting at the first step
-    env = VecVideoRecorder(
-        env,
-        video_folder,
-        record_video_trigger=lambda x: x == 0,
-        video_length=video_length,
-        name_prefix=f"dqn-{env_id}",
-    )
-
-    obs = env.reset()
-    done = False
-    while not done:
-        action = [model.predict(obs)[0][0]]
-        obs, _, done, _ = env.step(action)
-    # Save the video
-    env.close()
-except NameError:
-    print(
-        "Failed to record episode, check that you have ffmpeg installed if you would like a video."
-    )
