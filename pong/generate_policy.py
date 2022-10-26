@@ -102,7 +102,7 @@ try:
 
     obs = env.reset()
     for _ in range(video_length + 1):
-        action = [model.predict(obs)]
+        action = [model.predict(obs)[0][0]]
         obs, _, _, _ = env.step(action)
     # Save the video
     env.close()
