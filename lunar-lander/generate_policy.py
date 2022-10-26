@@ -85,7 +85,7 @@ try:
     from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv
 
     video_folder = "videos/"
-    video_length = 100
+    video_length = int(1e8)
 
     env = DummyVecEnv([lambda: gym.make(env_id)])
 
@@ -101,9 +101,10 @@ try:
     )
 
     obs = env.reset()
-    for _ in range(video_length + 1):
+    done = False
+    while not done:
         action = [model.predict(obs)[0][0]]
-        obs, _, _, _ = env.step(action)
+        obs, _, done, _ = env.step(action)
     # Save the video
     env.close()
 except NameError:
