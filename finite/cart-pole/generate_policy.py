@@ -38,11 +38,18 @@ verbose: bool = parameters.verbose
 model = DQN(
     "MlpPolicy",
     make_env(),
-    learning_rate=1e-2,
-    buffer_size=5000,
-    learning_starts=100,
-    verbose=int(verbose),
+    learning_starts=1000,
+    exploration_final_eps=0.04,
+    buffer_size=100000,
+    batch_size=64,
+    exploration_fraction=0.16,
+    gamma=0.99,
+    gradient_steps=128,
+    learning_rate=0.0023,
+    train_freq=256,
     target_update_interval=10,
+    policy_kwargs={"net_arch": [256, 256]},
+    verbose=int(verbose),
     seed=seed,
 )
 
@@ -57,7 +64,7 @@ bmean_reward, bstd_reward = evaluate_policy(
 
 
 # Train the agent
-model.learn(total_timesteps=int(1e5), progress_bar=True)
+model.learn(total_timesteps=int(50000), progress_bar=True)
 # Save the agent
 model.save(file)
 
