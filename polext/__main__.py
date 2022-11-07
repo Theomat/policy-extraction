@@ -30,7 +30,9 @@ if __name__ == "__main__":
     if finite:
         from polext.finite import build_tree
 
-        module = importlib.import_module(script_path)
+        module = importlib.import_module(
+            script_path.replace(".py", "").replace("/", ".")
+        )
         states = module.__getattribute__("states")
         predicates = module.__getattribute__("predicates")
         Q_builder = module.__getattribute__("Q_builder")
