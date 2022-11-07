@@ -17,10 +17,10 @@ class DiscreteWrapper(gym.ObservationWrapper):
 
     def observation(self, obs):
         return (
-            np.digitize(obs[0], angle_velocity_state_array),
-            np.digitize(obs[1], angle_state_array),
-            np.digitize(obs[2], velocity_state_array),
-            np.digitize(obs[3], position_state_array),
+            np.digitize(obs[3], angle_velocity_state_array),
+            np.digitize(obs[2], angle_state_array),
+            np.digitize(obs[1], velocity_state_array),
+            np.digitize(obs[0], position_state_array),
         )
 
 
