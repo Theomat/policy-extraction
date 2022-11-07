@@ -1,7 +1,12 @@
+from typing import Callable, List, Tuple
 import numpy as np
+from stable_baselines3 import DQN
 
 import gym
 from gym.spaces import MultiDiscrete
+import torch
+
+from polext import Predicate
 
 bins = 7
 velocity_state_array = np.linspace(-3, +3, num=bins - 1, endpoint=False)
@@ -34,3 +39,24 @@ states = [
     for i in velocity_state_array
     for j in position_state_array
 ]
+
+predicates = [
+    Predicate("angle_positive", lambda s: s[1]> 0),
+    Predicate("angle_velocity_positive", lambda s: s[0]> 0),
+    Predicate("velocity_positive", lambda s: s[2]> 0),
+    Predicate("position_positive", lambda s: s[0]> 0),
+] 
+
+def Q_builder(path: str) -> Callable[[Tuple[int, int, int, int]], List[float]]:
+    model = DQN(
+        "MlpPolicy",
+        make_env()
+    ).load(path)
+    def f(state: Tuple[int, int, int, int]) -> List[float]:
+        observation = np.array(state).reshape((-1,) + model.observation_space.shape)
+        observation = torch.tensor(observation, device=model.device)
+        with torch.no_grad():
+            q_values = model.q_net(observation)
+            print(q_values)
+        return [x for x in q_values]
+    return f
