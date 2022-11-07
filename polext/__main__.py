@@ -36,7 +36,7 @@ if __name__ == "__main__":
         states = module.__getattribute__("states")
         predicates = module.__getattribute__("predicates")
         Q_builder = module.__getattribute__("Q_builder")
-        Q = Q_builder(script_path)
+        Q = Q_builder(model_path)
 
         tree = build_tree(states, Q, predicates, max_depth)
         print(tree)
