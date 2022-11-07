@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Set, TypeVar
+from typing import Callable, Dict, List, Set, TypeVar
 from polext.decision_tree import DecisionTree, Node, Leaf
 from polext.predicate import Predicate
 
@@ -46,10 +46,12 @@ def __rec_tree__(
         return Leaf(previous_action)
     else:
         sub_states = predicates_table[best_predicate]
+        next_pred_tables = {k: v for k, v in predicates_table.items()}
+        del next_pred_tables[best_predicate]
         left = __rec_tree__(
             states.intersection(sub_states),
             Qtable,
-            predicates_table,
+            next_pred_tables,
             depth_left - 1,
             nactions,
             best_action,
@@ -57,7 +59,7 @@ def __rec_tree__(
         right = __rec_tree__(
             states.difference(sub_states),
             Qtable,
-            predicates_table,
+            next_pred_tables,
             depth_left - 1,
             nactions,
             best_action,
