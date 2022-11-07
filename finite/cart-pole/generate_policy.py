@@ -34,7 +34,7 @@ file: str = parameters.file
 seed: int = parameters.seed
 verbose: bool = parameters.verbose
 
-
+# parameters from https://github.com/DLR-RM/rl-trained-agents/blob/1e2a45e5d06efd6cc15da6cf2d1939d72dcbdf87/dqn/CartPole-v1_1/CartPole-v1/config.yml
 model = DQN(
     "MlpPolicy",
     make_env(),
