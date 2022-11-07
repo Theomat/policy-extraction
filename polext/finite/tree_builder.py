@@ -16,7 +16,10 @@ def build_tree(
         predicate: {s for s in states if predicate(s)} for predicate in predicates
     }
     nactions = len(Qtable[states[0]])
-    return __rec_tree__(set(states), Qtable, predicates_table, max_depth, nactions, 0)
+    tree = __rec_tree__(set(states), Qtable, predicates_table, max_depth, nactions, 0)
+    lost_reward = sum(max(Qtable[s]) - Qtable[tree(s)] for s in states)
+    print("lost reward:", lost_reward)
+    return tree
 
 
 def __rec_tree__(
