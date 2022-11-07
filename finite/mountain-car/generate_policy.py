@@ -34,17 +34,22 @@ file: str = parameters.file
 seed: int = parameters.seed
 verbose: bool = parameters.verbose
 
-
+# Parameters from https://github.com/DLR-RM/rl-trained-agents/blob/1e2a45e5d06efd6cc15da6cf2d1939d72dcbdf87/dqn/MountainCar-v0_1/MountainCar-v0/config.yml
 model = DQN(
     "MlpPolicy",
     make_env(),
-    learning_rate=0.05,
-    gamma=0.95,
-    buffer_size=5000,
-    exploration_initial_eps=0.5,
-    learning_starts=100,
+    batch_size=128,
+    buffer_size=10000,
+    exploration_final_eps=0.07,
+    exploration_fraction=0.2,
+    gamma=0.98,
+    gradient_steps=8,
+    learning_rate=0.004,
+    learning_starts=1000,
+    policy_kwargs={"net_arch": [256, 256]},
+    target_update_interval=600,
+    train_freq=16,
     verbose=int(verbose),
-    target_update_interval=10,
     seed=seed,
 )
 
@@ -59,7 +64,7 @@ bmean_reward, bstd_reward = evaluate_policy(
 
 
 # Train the agent
-model.learn(total_timesteps=5000 * 200, progress_bar=True)
+model.learn(total_timesteps=120000, progress_bar=True)
 # Save the agent
 model.save(file)
 
