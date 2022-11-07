@@ -69,7 +69,7 @@ bmean_reward, bstd_reward = evaluate_policy(
 
 
 # Train the agent
-model.learn(total_timesteps=timesteps)
+model.learn(total_timesteps=timesteps, progress_bar=True)
 # Save the agent
 model.save(file)
 
