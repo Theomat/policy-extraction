@@ -34,6 +34,9 @@ class Node(DecisionTree[S]):
             + f"{self.predicate}:\n{self.left.to_string(level + 1)}\n{self.right.to_string(level + 1)}"
         )
 
+    def __repr__(self) -> str:
+        return self.to_string()
+
 
 @dataclass
 class Leaf(DecisionTree[S]):
@@ -43,4 +46,7 @@ class Leaf(DecisionTree[S]):
         return self.action
 
     def to_string(self, level: int = 0) -> str:
-        return "\t" * level + "{self.action}"
+        return "\t" * level + f"{self.action}"
+
+    def __repr__(self) -> str:
+        return self.to_string()
