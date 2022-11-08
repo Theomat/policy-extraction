@@ -5,6 +5,14 @@ from polext.predicate import Predicate
 S = TypeVar("S")
 
 
+def __score__(tree: DecisionTree[S], Qtable: Dict[S, List[float]], states) -> float:
+    lost_reward = sum(max(Qtable[s]) - Qtable[s][tree(s)] for s in states)
+    print("tree:", tree)
+    print("lost reward:", lost_reward)
+    print("sum of Q*:", sum(max(Qtable[s]) for s in states))
+    return lost_reward
+
+
 def build_tree(
     states: List[S],
     Q: Callable[[S], List[float]],
@@ -16,10 +24,16 @@ def build_tree(
         predicate: {s for s in states if predicate(s)} for predicate in predicates
     }
     nactions = len(Qtable[states[0]])
-    tree = __rec_tree__(set(states), Qtable, predicates_table, max_depth, nactions, 0)
-    lost_reward = sum(max(Qtable[s]) - Qtable[tree(s)] for s in states)
-    print("lost reward:", lost_reward)
-    return tree
+    best_loss = 1e99
+    best = Leaf(0)
+    for action in range(nactions):
+        tree = __rec_tree__(set(states), Qtable, predicates_table, max_depth, nactions, action)
+        lost_reward = __score__(tree, Qtable, states)
+        if lost_reward < best_loss:
+            best = tree
+            best_loss = lost_reward
+    
+    return best
 
 
 def __rec_tree__(
