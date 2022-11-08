@@ -34,24 +34,23 @@ env = make_env()
 
 states = [
     (i, j, k, l)
-    for l in angle_velocity_state_array
-    for k in angle_state_array
-    for i in velocity_state_array
-    for j in position_state_array
+    for l in range(bins)
+    for k in range(bins)
+    for i in range(bins)
+    for j in range(bins)
 ]
 
 predicates = [
-    Predicate("angle_positive", lambda s: s[1]> 0),
-    Predicate("angle_velocity_positive", lambda s: s[0]> 0),
-    Predicate("velocity_positive", lambda s: s[2]> 0),
-    Predicate("position_positive", lambda s: s[0]> 0),
-] 
+    Predicate("angle_positive", lambda s: s[1] > 0),
+    Predicate("angle_velocity_positive", lambda s: s[0] > 0),
+    Predicate("velocity_positive", lambda s: s[2] > 0),
+    Predicate("position_positive", lambda s: s[0] > 0),
+]
+
 
 def Q_builder(path: str) -> Callable[[Tuple[int, int, int, int]], List[float]]:
-    model = DQN(
-        "MlpPolicy",
-        make_env()
-    ).load(path)
+    model = DQN("MlpPolicy", make_env()).load(path)
+
     def f(state: Tuple[int, int, int, int]) -> List[float]:
         observation = np.array(state).reshape((-1,) + model.observation_space.shape)
         observation = torch.tensor(observation, device=model.device)
@@ -59,4 +58,5 @@ def Q_builder(path: str) -> Callable[[Tuple[int, int, int, int]], List[float]]:
             q_values = model.q_net(observation)
             print(q_values)
         return [x for x in q_values]
+
     return f
