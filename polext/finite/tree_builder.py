@@ -37,9 +37,15 @@ def __rec_tree__(
     best_action = previous_action
     best_score = sum(Qtable[s][previous_action] for s in states)
     for candidate, sub_states in predicates_table.items():
-        part = sub_states.intersection(states)
+        # print("\tcandidate:", candidate)
+        part = states.intersection(sub_states)
+        not_part = states.difference(sub_states)
+        free_score = sum(Qtable[s][previous_action] for s in not_part)
         for action in range(nactions):
-            score = sum(Qtable[s][action] for s in part)
+            if action == previous_action:
+                continue
+            score = sum(Qtable[s][action] for s in part) + free_score
+            # print("\t\taction:", action, "score:", score)
             if score > best_score:
                 best_predicate = candidate
                 best_action = action
