@@ -65,6 +65,6 @@ def __rec_tree__(
             next_pred_tables,
             depth_left - 1,
             nactions,
-            best_action,
+            previous_action,
         )
         return Node(best_predicate, left, right)
