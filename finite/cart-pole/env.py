@@ -55,8 +55,7 @@ def Q_builder(path: str) -> Callable[[Tuple[int, int, int, int]], List[float]]:
         observation = np.array(state).reshape((-1,) + model.observation_space.shape)
         observation = torch.tensor(observation, device=model.device)
         with torch.no_grad():
-            q_values = model.q_net(observation)
-            print(q_values)
-        return [x for x in q_values]
+            q_values = model.q_net(observation)[0]
+        return [x.item() for x in q_values]
 
     return f
