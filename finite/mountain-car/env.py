@@ -23,4 +23,4 @@ class DiscreteWrapper(gym.ObservationWrapper):
 make_env = lambda: DiscreteWrapper(gym.make("MountainCar-v0"))
 env = make_env()
 
-states = [(i, j) for i in velocity_state_array for j in position_state_array]
+states = [(i, j) for i in range(bins) for j in range(bins)]
