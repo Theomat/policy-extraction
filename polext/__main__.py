@@ -17,18 +17,25 @@ if __name__ == "__main__":
         dest="model_path",
         help="DQN model file to load",
     )
-    parser.add_argument("--finite", action="store_true", help="finite state space")
+    parser.add_argument(
+        "--finite",
+        type=str,
+        nargs="?",
+        help="finite state space and name of the method to use",
+        default="none",
+    )
     parser.add_argument("--depth", type=int, default=5, help="max decision tree depth")
 
     parameters = parser.parse_args()
     script_path: str = parameters.script_path
     model_path: str = parameters.model_path
-    finite: bool = parameters.finite
+    finite_method: str = parameters.finite
     max_depth: bool = parameters.depth
 
     # TODO: call method
-    if finite:
+    if finite_method != "none":
         from polext.finite import build_tree
+        from polext.finite.tree_builder import METHODS as FINITE_METHODS
 
         module = importlib.import_module(
             script_path.replace(".py", "").replace("/", ".")
@@ -38,5 +45,9 @@ if __name__ == "__main__":
         Q_builder = module.__getattribute__("Q_builder")
         Q = Q_builder(model_path)
 
-        tree = build_tree(states, Q, predicates, max_depth)
-        print(tree)
+        if finite_method == "all":
+            for method in FINITE_METHODS.keys():
+                tree, score = build_tree(states, Q, predicates, max_depth, method)
+                print("Method:", method)
+                print("Score:", score)
+                print(tree)
