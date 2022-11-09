@@ -41,10 +41,10 @@ states = [
 ]
 
 predicates = [
-    Predicate("angle_positive", lambda s: s[1] > 0),
     Predicate("angle_velocity_positive", lambda s: s[0] > 0),
+    Predicate("angle_positive", lambda s: s[1] > 0),
     Predicate("velocity_positive", lambda s: s[2] > 0),
-    Predicate("position_positive", lambda s: s[0] > 0),
+    Predicate("position_positive", lambda s: s[3] > 0),
 ]
 
 
