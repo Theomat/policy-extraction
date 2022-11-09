@@ -233,10 +233,93 @@ def __best_probability_selection__(
     return best_predicate, previous_action, previous_action
 
 
+def __optimistic_selection__(
+    states: Set[S],
+    Qtable: Dict[S, List[float]],
+    predicates_table: Dict[Predicate[S], Set[S]],
+    depth_left: int,
+    nactions: int,
+    previous_action: int,
+) -> Tuple[Optional[Predicate[S]], int, int]:
+    best_score = -999999
+    if depth_left == 2:
+        return __find_greedy_finisher__(
+            states, Qtable, predicates_table, nactions, __greedy_q_selection__
+        )
+
+    best_predicate = None
+    best_action = previous_action
+    best_score = 0
+
+    classes = {action: 0 for action in range(nactions)}
+    for s in states:
+        best_action = Qtable[s].index(max(Qtable[s]))
+        if isinstance(best_action, int):
+            best_action = (best_action,)
+        for a in best_action:
+            classes[a] += 1
+    tpart = sum(classes.values())
+    for s in states:
+        best_action = Qtable[s].index(max(Qtable[s]))
+        if isinstance(best_action, int):
+            best_action = (best_action,)
+        best_score += min(1, sum(classes[a] for a in best_action) / tpart) * max(
+            Qtable[s]
+        )
+
+    for candidate, sub_states in predicates_table.items():
+        # print("\tcandidate:", candidate)
+        part_classes = {action: 0 for action in range(nactions)}
+        not_part_classes = {action: 0 for action in range(nactions)}
+        for s in states:
+            q_max = max(Qtable[s])
+            best_action = Qtable[s].index(q_max)
+            if isinstance(best_action, int):
+                best_action = (best_action,)
+            if s in sub_states:
+                for a in best_action:
+                    part_classes[a] += q_max
+            else:
+                for a in best_action:
+                    not_part_classes[a] += q_max
+        score = 0
+        availables_pos = []
+        availables_neg = []
+        pli = sorted(list(part_classes.items()), key=lambda s: s[1], reverse=True)
+        npli = sorted(list(not_part_classes.items()), key=lambda s: s[1], reverse=True)
+        for i in range(min(len(pli), int(2 ** (depth_left - 1)))):
+            score += pli[i][1]
+            score += npli[i][1]
+            availables_pos.append(pli[i][0])
+            availables_neg.append(npli[i][0])
+        for s in states:
+            q_max = max(Qtable[s])
+            best_action = Qtable[s].index(q_max)
+            if isinstance(best_action, int):
+                best_action = (best_action,)
+            if s in sub_states:
+                if all(a not in availables_pos for a in best_action):
+                    score += max(Qtable[s][i] for i in availables_pos)
+            else:
+                if all(a not in availables_neg for a in best_action):
+                    score += max(Qtable[s][i] for i in availables_neg)
+
+        if score > best_score:
+            best_score = score
+            best_predicate = candidate
+
+    if best_predicate is None:
+        return __find_greedy_finisher__(
+            states, Qtable, predicates_table, nactions, __greedy_q_selection__
+        )
+    return best_predicate, previous_action, previous_action
+
+
 METHODS = {
     "greedy-q": __greedy_q_selection__,
     "greedy-opt-action": __greedy_opt_action_selection__,
     "max-probability": __best_probability_selection__,
+    "optimistic": __optimistic_selection__,
 }
 
 
