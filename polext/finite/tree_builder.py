@@ -26,14 +26,35 @@ def build_tree(
     nactions = len(Qtable[states[0]])
     best_loss = 1e99
     best = Leaf(0)
-    for action in range(nactions):
-        tree = __rec_tree__(
-            set(states), Qtable, predicates_table, max_depth, nactions, action, method
+    if METHODS[method][2]:
+        if METHODS[method][1]:
+            for action in range(nactions):
+                tree = __rec_tree__(
+                    set(states),
+                    Qtable,
+                    predicates_table,
+                    max_depth,
+                    nactions,
+                    action,
+                    method,
+                ).simplified()
+                lost_reward = __loss__(tree, Qtable, states)
+                if lost_reward < best_loss:
+                    best = tree
+                    best_loss = lost_reward
+        else:
+            tree = __rec_tree__(
+                set(states), Qtable, predicates_table, max_depth, nactions, 0, method
+            ).simplified()
+            lost_reward = __loss__(tree, Qtable, states)
+            if lost_reward < best_loss:
+                best = tree
+                best_loss = lost_reward
+    else:
+        tree = METHODS[method][0](
+            set(states), Qtable, predicates_table, max_depth, nactions
         ).simplified()
         lost_reward = __loss__(tree, Qtable, states)
-        if lost_reward < best_loss:
-            best = tree
-            best_loss = lost_reward
 
     return best, best_loss
 
@@ -316,10 +337,11 @@ def __optimistic_selection__(
 
 
 METHODS = {
-    "greedy-q": __greedy_q_selection__,
-    "greedy-opt-action": __greedy_opt_action_selection__,
-    "max-probability": __best_probability_selection__,
-    "optimistic": __optimistic_selection__,
+    "greedy-q": (__greedy_q_selection__, True, True),
+    "greedy-opt-action": (__greedy_opt_action_selection__, True, True),
+    "max-probability": (__best_probability_selection__, False, True),
+    "optimistic": (__optimistic_selection__, False, True),
+    # "tree-force": (__treeforce_selection__, False, False),
 }
 
 
@@ -335,7 +357,7 @@ def __rec_tree__(
     if depth_left == 1:
         return Leaf(previous_action)
     # Find best split
-    best_predicate, best_action, previous_action = METHODS[method](
+    best_predicate, best_action, previous_action = METHODS[method][0](
         states, Qtable, predicates_table, depth_left, nactions, previous_action
     )
 
