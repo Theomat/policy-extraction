@@ -49,5 +49,5 @@ if __name__ == "__main__":
             for method in FINITE_METHODS.keys():
                 tree, score = build_tree(states, Q, predicates, max_depth, method)
                 print("Method:", method)
-                print("Score:", score)
+                print("Loss:", score)
                 print(tree)
