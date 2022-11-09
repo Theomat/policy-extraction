@@ -76,7 +76,7 @@ def __split__(
         return Node(best_predicate, left, right)
 
 
-def __naive_selection__(
+def __greedy_q_selection__(
     states: Set[S],
     Qtable: Dict[S, List[float]],
     predicates_table: Dict[Predicate[S], Set[S]],
@@ -104,7 +104,42 @@ def __naive_selection__(
     return best_predicate, best_action
 
 
-METHODS = {"naive": __naive_selection__}
+def __greedy_opt_action_selection__(
+    states: Set[S],
+    Qtable: Dict[S, List[float]],
+    predicates_table: Dict[Predicate[S], Set[S]],
+    depth_left: int,
+    nactions: int,
+    previous_action: int,
+) -> Tuple[Optional[Predicate[S]], int]:
+    best_predicate = None
+    best_action = previous_action
+    n_before = sum(1 for s in states if max(Qtable[s]) <= Qtable[s][previous_action])
+    best_score = n_before
+    for candidate, sub_states in predicates_table.items():
+        # print("\tcandidate:", candidate)
+        part = states.intersection(sub_states)
+        not_part = states.difference(sub_states)
+        n_candidate = sum(
+            1 for s in not_part if max(Qtable[s]) <= Qtable[s][previous_action]
+        )
+        for action in range(nactions):
+            if action == previous_action:
+                continue
+            n_after = (
+                sum(1 for s in part if max(Qtable[s]) <= Qtable[s][action])
+                + n_candidate
+            )
+            score = n_after
+            # print("\t\taction:", action, "score:", score)
+            if score > best_score:
+                best_predicate = candidate
+                best_action = action
+                best_score = score
+    return best_predicate, best_action
+
+
+METHODS = {"greedy-q": __greedy_q_selection__, "greedy-opt-action": __greedy_opt_action_selection__}
 
 
 def __rec_tree__(
