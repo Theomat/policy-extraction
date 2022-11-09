@@ -16,6 +16,9 @@ class DecisionTree(ABC, Generic[S]):
     def to_string(self, level: int = 0) -> str:
         pass
 
+    def simplified(self) -> "DecisionTree[S]":
+        return self
+
 
 @dataclass
 class Node(DecisionTree[S]):
@@ -36,6 +39,21 @@ class Node(DecisionTree[S]):
 
     def __repr__(self) -> str:
         return self.to_string()
+
+    def simplified(self) -> "DecisionTree[S]":
+        if (
+            isinstance(self.left, Leaf)
+            and isinstance(self.right, Leaf)
+            and self.left.action == self.right.action
+        ):
+            return self.left
+        sleft = self.left.simplified()
+        sright = self.right.simplified()
+        if sleft != self.left or sright != self.right:
+
+            return Node(self.predicate, sleft, sright).simplified()
+        else:
+            return Node(self.predicate, sleft, sright)
 
 
 @dataclass

@@ -29,7 +29,7 @@ def build_tree(
     for action in range(nactions):
         tree = __rec_tree__(
             set(states), Qtable, predicates_table, max_depth, nactions, action, method
-        )
+        ).simplified()
         lost_reward = __loss__(tree, Qtable, states)
         if lost_reward < best_loss:
             best = tree
