@@ -40,12 +40,23 @@ states = [
     for j in range(bins)
 ]
 
-predicates = [
-    Predicate("angle_velocity_positive", lambda s: s[0] > 0),
-    Predicate("angle_positive", lambda s: s[1] > 0),
-    Predicate("velocity_positive", lambda s: s[2] > 0),
-    Predicate("position_positive", lambda s: s[3] > 0),
-]
+
+def pred(i: int, val: float):
+    def f(s) -> bool:
+        return s[i] > val
+
+    return f
+
+
+predicates = []
+for i, array, name in [
+    (2, velocity_state_array, "speed"),
+    (3, position_state_array, "pos"),
+    (1, angle_state_array, "angle"),
+    (0, angle_velocity_state_array, "moment"),
+]:
+    for el in array[1:]:
+        predicates.append(Predicate(f"{name} > {el:.2e}", pred(i, el)))
 
 
 def Q_builder(path: str) -> Callable[[Tuple[int, int, int, int]], List[float]]:
