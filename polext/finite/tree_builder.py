@@ -139,7 +139,10 @@ def __greedy_opt_action_selection__(
     return best_predicate, best_action
 
 
-METHODS = {"greedy-q": __greedy_q_selection__, "greedy-opt-action": __greedy_opt_action_selection__}
+METHODS = {
+    "greedy-q": __greedy_q_selection__,
+    "greedy-opt-action": __greedy_opt_action_selection__,
+}
 
 
 def __rec_tree__(
