@@ -42,8 +42,8 @@ for i, array, name in [
     (0, velocity_state_array, "speed"),
     (1, position_state_array, "pos"),
 ]:
-    for el in array[1:]:
-        predicates.append(Predicate(f"{name} > {el:.2e}", pred(i, el)))
+    for j, el in enumerate(array):
+        predicates.append(Predicate(f"{name} >= {el:.2e}", pred(i, j)))
 
 
 def Q_builder(path: str) -> Callable[[Tuple[int, int]], List[float]]:

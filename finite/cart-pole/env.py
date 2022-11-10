@@ -9,10 +9,10 @@ import torch
 from polext import Predicate
 
 bins = 7
-velocity_state_array = np.linspace(-3, +3, num=bins - 1, endpoint=False)
-position_state_array = np.linspace(-2.4, +2.4, num=bins - 1, endpoint=False)
-angle_state_array = np.linspace(-0.2095, +0.2095, num=bins - 1, endpoint=False)
-angle_velocity_state_array = np.linspace(-2.0, +2.0, num=bins - 1, endpoint=False)
+velocity_state_array = np.linspace(-3, +3, num=bins, endpoint=True)
+position_state_array = np.linspace(-2.4, +2.4, num=bins, endpoint=True)
+angle_state_array = np.linspace(-0.2095, +0.2095, num=bins, endpoint=True)
+angle_velocity_state_array = np.linspace(-2.0, +2.0, num=bins, endpoint=True)
 
 
 class DiscreteWrapper(gym.ObservationWrapper):
@@ -50,13 +50,13 @@ def pred(i: int, val: float):
 
 predicates = []
 for i, array, name in [
+    (0, angle_velocity_state_array, "moment"),
+    (1, angle_state_array, "angle"),
     (2, velocity_state_array, "speed"),
     (3, position_state_array, "pos"),
-    (1, angle_state_array, "angle"),
-    (0, angle_velocity_state_array, "moment"),
 ]:
-    for el in array[1:]:
-        predicates.append(Predicate(f"{name} > {el:.2e}", pred(i, el)))
+    for j, el in enumerate(array):
+        predicates.append(Predicate(f"{name} >= {el:.2e}", pred(i, j)))
 
 
 def Q_builder(path: str) -> Callable[[Tuple[int, int, int, int]], List[float]]:
