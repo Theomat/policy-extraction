@@ -305,7 +305,10 @@ def __optimistic_selection__(
         availables_neg = []
         pli = sorted(list(part_classes.items()), key=lambda s: s[1], reverse=True)
         npli = sorted(list(not_part_classes.items()), key=lambda s: s[1], reverse=True)
-        for i in range(min(len(pli), int(2 ** (depth_left - 1)))):
+        left = int(2 ** (depth_left - 1))
+        while left > len(pli):
+            left >>= 1
+        for i in range(left):
             score += pli[i][1]
             score += npli[i][1]
             availables_pos.append(pli[i][0])
