@@ -30,18 +30,21 @@ ABSTRACT HERE
 # clone this repository
 
 # First install polext
-cd polext
-poetry install
-cd ..
+pip install .
+# Or if you want dev install
+pip install -e .
 ```
 
 ### Reproducing the experiments
 
-Please see each README file in the following folders:
+Please see each ``README`` file in the corresponding folders:
 
-- `lunar-lander` for the Lunar Lander experiment
-- `pong` for the Atari Pong experiment
-TODO
+| Environment  | State Space | Policy downloaded from rl-zoo | Folder |
+|--------------|:-----:|:-----------:|:---------|
+| Cart-Pole-v1    | Finite    |        No  | `finite/cart-pole` |
+| Lunar-Lander    | Infinite  |        Yes | `infinite/lunar-lander` |
+| Mountain-Car-v0 | Finite    |        Yes | `finite/mountain-car` |
+| Pong            | Infinite  |        Yes | `infinite/pong` |
 
 ## Citing
 
