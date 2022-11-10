@@ -43,18 +43,15 @@ def build_tree(
                     best = tree
                     best_loss = lost_reward
         else:
-            tree = __rec_tree__(
+            best = __rec_tree__(
                 set(states), Qtable, predicates_table, max_depth, nactions, 0, method
             ).simplified()
-            lost_reward = __loss__(tree, Qtable, states)
-            if lost_reward < best_loss:
-                best = tree
-                best_loss = lost_reward
+            best_loss = __loss__(best, Qtable, states)
     else:
-        tree = METHODS[method][0](
+        best = METHODS[method][0](
             set(states), Qtable, predicates_table, max_depth, nactions
         ).simplified()
-        lost_reward = __loss__(tree, Qtable, states)
+        best_loss = __loss__(best, Qtable, states)
 
     return best, best_loss
 
@@ -341,7 +338,6 @@ METHODS = {
     "greedy-opt-action": (__greedy_opt_action_selection__, True, True),
     "max-probability": (__best_probability_selection__, False, True),
     "optimistic": (__optimistic_selection__, False, True),
-    # "tree-force": (__treeforce_selection__, False, False),
 }
 
 
