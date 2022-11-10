@@ -1,19 +1,19 @@
 import importlib
-
+import numpy as np
 from polext.decision_tree import Leaf
 
-# python -m polext finite/mountain-car/env.py logs/dqn/MountainCar-v0_1/MountainCar-v0.zip --finite all --eval 10
 
-
-def eval_tree(tree, episodes: int, env) -> float:
-    total_reward = 0
-    for _ in range(eval_episodes):
+def eval_tree(tree, episodes: int, env) -> tuple[float, float]:
+    total_rewards = []
+    for _ in range(episodes):
+        total_reward = 0
         done = False
         state = env.reset()
         while not done:
             state, reward, done, _ = env.step(tree(state))
             total_reward += reward
-    return total_reward
+        total_rewards.append(total_reward)
+    return np.mean(total_rewards), 2 * np.std(total_rewards)
 
 
 if __name__ == "__main__":
@@ -76,12 +76,12 @@ if __name__ == "__main__":
                 print("Lost Q-Values:", score)
                 if eval_episodes > 0:
                     env = module.__getattribute__("make_env")()
-                    total_reward = eval_tree(tree, eval_episodes, env)
+                    mean, diff = eval_tree(tree, eval_episodes, env)
                     print(
-                        f"Average reward over {eval_episodes} episodes:",
-                        total_reward / eval_episodes,
+                        f"95% of rewards over {eval_episodes} episodes fall into: [{mean- diff:.2f};{mean + diff:.2f}] (mean={mean})"
                     )
                 print(tree)
+                print()
         else:
             tree, score = build_tree(states, Q, predicates, max_depth, finite_method)
             print("Lost Q-Values:", score)
@@ -89,8 +89,7 @@ if __name__ == "__main__":
 
             if eval_episodes > 0:
                 env = module.__getattribute__("make_env")()
-                total_reward = eval_tree(tree, eval_episodes, env)
+                mean, diff = eval_tree(tree, eval_episodes, env)
                 print(
-                    f"Average reward over {eval_episodes} episodes:",
-                    total_reward / eval_episodes,
+                    f"95% of rewards over {eval_episodes} episodes fall into: [{mean- diff:.2f};{mean + diff:.2f}] (mean={mean})"
                 )
