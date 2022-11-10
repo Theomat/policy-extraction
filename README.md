@@ -33,6 +33,10 @@ ABSTRACT HERE
 pip install .
 # Or if you want dev install
 pip install -e .
+
+# Now to reproduce most experiments, you can either install the dependencies individually depending on what you are missing
+# or just use
+pip install -r requirements.txt
 ```
 
 ### Reproducing the experiments

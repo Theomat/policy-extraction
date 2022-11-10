@@ -9,6 +9,7 @@ repository = "https://github.com/Theomat/policy-extraction"
 
 [tool.poetry.dependencies]
 python = ">=3.7.1"
+numpy = ">=1.23.4"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"

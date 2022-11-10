@@ -1,0 +1,2 @@
+stable-baselines3>=1.6.2
+rl-zoo3>=1.6.3
