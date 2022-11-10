@@ -16,6 +16,22 @@ def eval_tree(tree, episodes: int, env) -> tuple[float, float]:
     return np.mean(total_rewards), 2 * np.std(total_rewards)
 
 
+def eval_q(Q, episodes: int, env) -> tuple[float, float]:
+    total_rewards = []
+    for _ in range(episodes):
+        total_reward = 0
+        done = False
+        state = env.reset()
+        while not done:
+            action = np.argmax(Q(state))
+            if isinstance(action, np.ndarray):
+                action = action[0]
+            state, reward, done, _ = env.step(action)
+            total_reward += reward
+        total_rewards.append(total_reward)
+    return np.mean(total_rewards), 2 * np.std(total_rewards)
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -55,7 +71,6 @@ if __name__ == "__main__":
     eval_episodes: int = parameters.eval
     max_depth: bool = parameters.depth
 
-    # TODO: call method
     if finite_method != "none":
         from polext.finite import build_tree
         from polext.finite.tree_builder import METHODS as FINITE_METHODS
@@ -69,6 +84,14 @@ if __name__ == "__main__":
         Q = Q_builder(model_path)
 
         tree = Leaf(0)
+        if eval_episodes > 0:
+            env = module.__getattribute__("make_env")()
+            mean, diff = eval_q(Q, eval_episodes, env)
+            print("Baseline Q-table:")
+            print(
+                f"95% of rewards over {eval_episodes} episodes fall into: [{mean- diff:.2f};{mean + diff:.2f}] (mean={mean})"
+            )
+            print()
         if finite_method == "all":
             for method in FINITE_METHODS.keys():
                 tree, score = build_tree(states, Q, predicates, max_depth, method)
@@ -93,3 +116,6 @@ if __name__ == "__main__":
                 print(
                     f"95% of rewards over {eval_episodes} episodes fall into: [{mean- diff:.2f};{mean + diff:.2f}] (mean={mean})"
                 )
+    else:
+        # TODO: infinite case
+        pass
