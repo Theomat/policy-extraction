@@ -8,8 +8,8 @@ import gym
 from gym.spaces import MultiDiscrete
 
 bins = 15
-velocity_state_array = np.linspace(-1.5, +1.5, num=bins - 1, endpoint=False)
-position_state_array = np.linspace(-1.2, +0.5, num=bins - 1, endpoint=False)
+velocity_state_array = np.linspace(-1.5, +1.5, num=bins, endpoint=False)
+position_state_array = np.linspace(-1.2, +0.5, num=bins, endpoint=False)
 
 
 class DiscreteWrapper(gym.ObservationWrapper):
@@ -47,10 +47,22 @@ for i, array, name in [
 
 
 def Q_builder(path: str) -> Callable[[Tuple[int, int]], List[float]]:
-    model = DQN("MlpPolicy", make_env()).load(path)
+    model = DQN(
+        "MlpPolicy", gym.make("MountainCar-v0"), policy_kwargs={"net_arch": [256, 256]}
+    )
+    model = model.load(path)
 
     def f(state: Tuple[int, int]) -> List[float]:
-        float_state = (velocity_state_array[state[0]], position_state_array[state[1]])
+        i, j = state
+        velocity = (
+            velocity_state_array[i - 1]
+            + (velocity_state_array[i] if i < bins else velocity_state_array[i - 1])
+        ) / 2
+        pos = (
+            position_state_array[j - 1]
+            + (position_state_array[j] if j < bins else position_state_array[j - 1])
+        ) / 2
+        float_state = (velocity, pos)
         observation = np.array(float_state).reshape(
             (-1,) + model.observation_space.shape
         )
