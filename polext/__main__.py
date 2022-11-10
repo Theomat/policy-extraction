@@ -73,7 +73,7 @@ if __name__ == "__main__":
             for method in FINITE_METHODS.keys():
                 tree, score = build_tree(states, Q, predicates, max_depth, method)
                 print("Method:", method)
-                print("Loss:", score)
+                print("Lost Q-Values:", score)
                 if eval_episodes > 0:
                     env = module.__getattribute__("make_env")()
                     total_reward = eval_tree(tree, eval_episodes, env)
@@ -84,7 +84,7 @@ if __name__ == "__main__":
                 print(tree)
         else:
             tree, score = build_tree(states, Q, predicates, max_depth, finite_method)
-            print("Loss:", score)
+            print("Lost Q-Values:", score)
             print(tree)
 
             if eval_episodes > 0:
