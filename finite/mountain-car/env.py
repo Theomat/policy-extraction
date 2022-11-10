@@ -62,7 +62,7 @@ def Q_builder(path: str) -> Callable[[Tuple[int, int]], List[float]]:
             position_state_array[j - 1]
             + (position_state_array[j] if j < bins else position_state_array[j - 1])
         ) / 2
-        float_state = (velocity, pos)
+        float_state = (pos, velocity)
         observation = np.array(float_state).reshape(
             (-1,) + model.observation_space.shape
         )
