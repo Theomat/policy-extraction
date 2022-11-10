@@ -43,8 +43,16 @@ def build_tree(
                     best = tree
                     best_loss = lost_reward
         else:
+            Qmax = {s: vals.index(max(vals)) for s, vals in Qtable.items()}
             best = __rec_tree__(
-                set(states), Qtable, predicates_table, max_depth, nactions, 0, method
+                set(states),
+                Qtable,
+                predicates_table,
+                max_depth,
+                nactions,
+                0,
+                method,
+                Qmax=Qmax,
             ).simplified()
             best_loss = __loss__(best, Qtable, states)
     else:
@@ -66,6 +74,7 @@ def __split__(
     nactions: int,
     previous_action: int,
     method: str,
+    **kwargs
 ) -> DecisionTree[S]:
     if best_predicate is None:
         return Leaf(previous_action)
@@ -81,6 +90,7 @@ def __split__(
             nactions,
             best_action,
             method,
+            **kwargs
         )
         right = __rec_tree__(
             states.difference(sub_states),
@@ -90,6 +100,7 @@ def __split__(
             nactions,
             previous_action,
             method,
+            **kwargs
         )
         return Node(best_predicate, left, right)
 
@@ -101,6 +112,7 @@ def __greedy_q_selection__(
     depth_left: int,
     nactions: int,
     previous_action: int,
+    **kwargs
 ) -> Tuple[Optional[Predicate[S]], int, int]:
     best_predicate = None
     best_action = previous_action
@@ -129,6 +141,7 @@ def __greedy_opt_action_selection__(
     depth_left: int,
     nactions: int,
     previous_action: int,
+    **kwargs
 ) -> Tuple[Optional[Predicate[S]], int, int]:
     best_predicate = None
     best_action = previous_action
@@ -163,11 +176,14 @@ def __find_greedy_finisher__(
     predicates_table: Dict[Predicate[S], Set[S]],
     nactions: int,
     fun,
+    **kwargs
 ) -> Tuple[Optional[Predicate[S]], int, int]:
     best_score = 1e99
     answer = (None, 0, 0)
     for action in range(nactions):
-        pred, baction, _ = fun(states, Qtable, predicates_table, 2, nactions, action)
+        pred, baction, _ = fun(
+            states, Qtable, predicates_table, 2, nactions, action, **kwargs
+        )
         tree = Node(pred, Leaf(baction), Leaf(action)) if pred else Leaf(action)
         score = __loss__(tree, Qtable, states)
         if score < best_score:
@@ -183,6 +199,8 @@ def __best_probability_selection__(
     depth_left: int,
     nactions: int,
     previous_action: int,
+    Qmax: Dict[S, int],
+    **kwargs
 ) -> Tuple[Optional[Predicate[S]], int, int]:
     best_score = -999999
     if depth_left == 2:
@@ -191,54 +209,35 @@ def __best_probability_selection__(
         )
 
     best_predicate = None
-    best_action = previous_action
     best_score = 0
 
     classes = {action: 0 for action in range(nactions)}
     for s in states:
-        best_action = Qtable[s].index(max(Qtable[s]))
-        if isinstance(best_action, int):
-            best_action = (best_action,)
-        for a in best_action:
-            classes[a] += 1
+        classes[Qmax[s]] += 1
     tpart = sum(classes.values())
     for s in states:
-        best_action = Qtable[s].index(max(Qtable[s]))
-        if isinstance(best_action, int):
-            best_action = (best_action,)
-        best_score += min(1, sum(classes[a] for a in best_action) / tpart) * max(
-            Qtable[s]
-        )
+        a = Qmax[s]
+        best_score += classes[a] / tpart * Qtable[s][Qmax[s]]
 
     for candidate, sub_states in predicates_table.items():
         # print("\tcandidate:", candidate)
         part_classes = {action: 0 for action in range(nactions)}
         not_part_classes = {action: 0 for action in range(nactions)}
         for s in states:
-            best_action = Qtable[s].index(max(Qtable[s]))
-            if isinstance(best_action, int):
-                best_action = (best_action,)
+            a = Qmax[s]
             if s in sub_states:
-                for a in best_action:
-                    part_classes[a] += 1
+                part_classes[a] += 1
             else:
-                for a in best_action:
-                    not_part_classes[a] += 1
+                not_part_classes[a] += 1
         score = 0
         tpart = sum(part_classes.values())
         tnpart = sum(not_part_classes.values())
         for s in states:
-            best_action = Qtable[s].index(max(Qtable[s]))
-            if isinstance(best_action, int):
-                best_action = (best_action,)
+            a = Qmax[s]
             if s in sub_states:
-                score += min(
-                    1, sum(part_classes[a] for a in best_action) / tpart
-                ) * max(Qtable[s])
+                score += part_classes[a] / tpart * Qtable[s][Qmax[s]]
             else:
-                score += min(
-                    1, sum(not_part_classes[a] for a in best_action) / tnpart
-                ) * max(Qtable[s])
+                score += not_part_classes[a] / tnpart * Qtable[s][Qmax[s]]
 
         if score > best_score:
             best_score = score
@@ -258,6 +257,8 @@ def __optimistic_selection__(
     depth_left: int,
     nactions: int,
     previous_action: int,
+    Qmax: Dict[S, int],
+    **kwargs
 ) -> Tuple[Optional[Predicate[S]], int, int]:
     best_score = -999999
     if depth_left == 2:
@@ -271,35 +272,23 @@ def __optimistic_selection__(
 
     classes = {action: 0 for action in range(nactions)}
     for s in states:
-        best_action = Qtable[s].index(max(Qtable[s]))
-        if isinstance(best_action, int):
-            best_action = (best_action,)
-        for a in best_action:
-            classes[a] += 1
+        classes[Qmax[s]] += 1
     tpart = sum(classes.values())
     for s in states:
-        best_action = Qtable[s].index(max(Qtable[s]))
-        if isinstance(best_action, int):
-            best_action = (best_action,)
-        best_score += min(1, sum(classes[a] for a in best_action) / tpart) * max(
-            Qtable[s]
-        )
+        a = Qmax[s]
+        best_score += classes[a] / tpart * Qtable[s][Qmax[s]]
 
     for candidate, sub_states in predicates_table.items():
         # print("\tcandidate:", candidate)
         part_classes = {action: 0 for action in range(nactions)}
         not_part_classes = {action: 0 for action in range(nactions)}
         for s in states:
-            q_max = max(Qtable[s])
-            best_action = Qtable[s].index(q_max)
-            if isinstance(best_action, int):
-                best_action = (best_action,)
+            a = Qmax[s]
+            qval = Qtable[s][a]
             if s in sub_states:
-                for a in best_action:
-                    part_classes[a] += q_max
+                part_classes[a] += qval
             else:
-                for a in best_action:
-                    not_part_classes[a] += q_max
+                not_part_classes[a] += qval
         score = 0
         availables_pos = []
         availables_neg = []
@@ -314,15 +303,12 @@ def __optimistic_selection__(
             availables_pos.append(pli[i][0])
             availables_neg.append(npli[i][0])
         for s in states:
-            q_max = max(Qtable[s])
-            best_action = Qtable[s].index(q_max)
-            if isinstance(best_action, int):
-                best_action = (best_action,)
+            a = Qmax[s]
             if s in sub_states:
-                if all(a not in availables_pos for a in best_action):
+                if a not in availables_pos:
                     score += max(Qtable[s][i] for i in availables_pos)
             else:
-                if all(a not in availables_neg for a in best_action):
+                if a not in availables_neg:
                     score += max(Qtable[s][i] for i in availables_neg)
 
         if score > best_score:
@@ -352,12 +338,19 @@ def __rec_tree__(
     nactions: int,
     previous_action: int,
     method: str,
+    **kwargs
 ) -> DecisionTree[S]:
     if depth_left == 1:
         return Leaf(previous_action)
     # Find best split
     best_predicate, best_action, previous_action = METHODS[method][0](
-        states, Qtable, predicates_table, depth_left, nactions, previous_action
+        states,
+        Qtable,
+        predicates_table,
+        depth_left,
+        nactions,
+        previous_action,
+        **kwargs
     )
 
     return __split__(
@@ -370,4 +363,5 @@ def __rec_tree__(
         nactions,
         previous_action,
         method,
+        **kwargs
     )
