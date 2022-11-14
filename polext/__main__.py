@@ -102,12 +102,12 @@ if __name__ == "__main__":
                     print(
                         f"95% of rewards over {eval_episodes} episodes fall into: [{mean- diff:.2f};{mean + diff:.2f}] (mean={mean})"
                     )
-                print(tree)
+                tree.print()
                 print()
         else:
             tree, score = build_tree(states, Q, predicates, max_depth, finite_method)
             print("Lost Q-Values:", score)
-            print(tree)
+            tree.print()
 
             if eval_episodes > 0:
                 env = module.__getattribute__("make_env")()

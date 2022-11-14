@@ -1,8 +1,12 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Generic, TypeVar
+from typing import Generic, Optional, TypeVar
 
 from polext.predicate import Predicate
+
+from rich import print
+from rich.tree import Tree
+from rich.text import Text
 
 S = TypeVar("S")
 
@@ -18,6 +22,9 @@ class DecisionTree(ABC, Generic[S]):
 
     def simplified(self) -> "DecisionTree[S]":
         return self
+
+    def print(self, parent: Optional[Tree] = None):
+        pass
 
 
 @dataclass
@@ -55,6 +62,18 @@ class Node(DecisionTree[S]):
         else:
             return Node(self.predicate, sleft, sright)
 
+    def print(self, parent: Optional[Tree] = None):
+        pred_text = Text.assemble((f"{self.predicate}", "bright_blue"))
+        first = parent is None
+        if first:
+            parent = Tree(pred_text)
+        else:
+            parent = parent.add(pred_text)
+        self.left.print(parent)
+        self.right.print(parent)
+        if first:
+            print(parent)
+
 
 @dataclass
 class Leaf(DecisionTree[S]):
@@ -68,3 +87,11 @@ class Leaf(DecisionTree[S]):
 
     def __repr__(self) -> str:
         return self.to_string()
+
+    def print(self, parent: Optional[Tree] = None):
+        action = Text.assemble((f"{self.action}", "bright_green"))
+        if parent is None:
+            parent = Tree(action)
+            print(parent)
+        else:
+            parent = parent.add(action)
