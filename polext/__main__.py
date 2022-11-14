@@ -1,5 +1,9 @@
 import importlib
 import numpy as np
+
+from rich import print
+from rich.text import Text
+
 from polext.decision_tree import Leaf
 
 
@@ -30,6 +34,25 @@ def eval_q(Q, episodes: int, env) -> tuple[float, float]:
             total_reward += reward
         total_rewards.append(total_reward)
     return np.mean(total_rewards), 2 * np.std(total_rewards)
+
+
+REWARD_STYLE = "gold1"
+FINITE_LOSS_STYLE = "bright_magenta"
+
+
+def print_reward(eval_episodes: int, mean: float, diff: float):
+    print(
+        f"95% of rewards over {eval_episodes} episodes fall into: ",
+        Text.assemble(
+            "[",
+            (f"{mean- diff:.2f}", REWARD_STYLE),
+            ";",
+            (f"{mean + diff:.2f}", REWARD_STYLE),
+            f"] (mean=",
+            (f"{mean}", REWARD_STYLE),
+            ")",
+        ),
+    )
 
 
 if __name__ == "__main__":
@@ -87,34 +110,29 @@ if __name__ == "__main__":
             env = module.__getattribute__("make_env")()
             mean, diff = eval_q(Q, eval_episodes, env)
             print("Baseline Q-table:")
-            print(
-                f"95% of rewards over {eval_episodes} episodes fall into: [{mean- diff:.2f};{mean + diff:.2f}] (mean={mean})"
-            )
+            print_reward(eval_episodes, mean, diff)
             print()
         if finite_method == "all":
             for method in FINITE_METHODS:
                 tree, score = build_tree(states, Q, predicates, max_depth, method)
-                print("Method:", method)
-                print("Lost Q-Values:", score)
+                print("Method:", Text.assemble((method, "bold")))
+                print("Lost Q-Values:", Text.assemble((str(score), FINITE_LOSS_STYLE)))
                 if eval_episodes > 0:
                     env = module.__getattribute__("make_env")()
                     mean, diff = eval_tree(tree, eval_episodes, env)
-                    print(
-                        f"95% of rewards over {eval_episodes} episodes fall into: [{mean- diff:.2f};{mean + diff:.2f}] (mean={mean})"
-                    )
+                    print_reward(eval_episodes, mean, diff)
                 tree.print()
                 print()
         else:
             tree, score = build_tree(states, Q, predicates, max_depth, finite_method)
-            print("Lost Q-Values:", score)
+            print("Lost Q-Values:", Text.assemble((str(score), FINITE_LOSS_STYLE)))
             tree.print()
 
             if eval_episodes > 0:
                 env = module.__getattribute__("make_env")()
                 mean, diff = eval_tree(tree, eval_episodes, env)
-                print(
-                    f"95% of rewards over {eval_episodes} episodes fall into: [{mean- diff:.2f};{mean + diff:.2f}] (mean={mean})"
-                )
+                print_reward(eval_episodes, mean, diff)
+
     else:
         # TODO: infinite case
         pass
