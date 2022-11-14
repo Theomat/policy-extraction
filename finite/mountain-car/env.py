@@ -7,20 +7,24 @@ import torch
 import gym
 from gym.spaces import MultiDiscrete
 
-bins = 15
-velocity_state_array = np.linspace(-1.5, +1.5, num=bins, endpoint=False)
-position_state_array = np.linspace(-1.2, +0.5, num=bins, endpoint=False)
+bins = 60
+
+states_arrays = [
+    ("position", np.linspace(-1.2, +0.5, num=bins, endpoint=False)),
+    ("speed", np.linspace(-0.07, +0.07, num=bins, endpoint=False)),
+]
 
 
 class DiscreteWrapper(gym.ObservationWrapper):
     def __init__(self, env):
         super().__init__(env)
-        self.observation_space = MultiDiscrete([bins, bins])
+        self.observation_space = MultiDiscrete(
+            [bins for _ in range(len(states_arrays))]
+        )
 
     def observation(self, obs):
-        return (
-            np.digitize(obs[1], velocity_state_array),
-            np.digitize(obs[0], position_state_array),
+        return tuple(
+            np.digitize(obs[i], states_arrays[i][1]) for i in range(len(states_arrays))
         )
 
 
@@ -38,12 +42,13 @@ def pred(i: int, val: float):
 
 
 predicates = []
-for i, array, name in [
-    (0, velocity_state_array, "speed"),
-    (1, position_state_array, "pos"),
-]:
+for i, (name, array) in enumerate(states_arrays):
     for j, el in enumerate(array):
         predicates.append(Predicate(f"{name} >= {el:.2e}", pred(i, j)))
+
+
+def real(array: np.ndarray, i: int) -> float:
+    return (array[i - 1] + (array[i] if i < bins else array[i - 1])) / 2
 
 
 def Q_builder(path: str) -> Callable[[Tuple[int, int]], List[float]]:
@@ -53,16 +58,9 @@ def Q_builder(path: str) -> Callable[[Tuple[int, int]], List[float]]:
     model = model.load(path)
 
     def f(state: Tuple[int, int]) -> List[float]:
-        i, j = state
-        velocity = (
-            velocity_state_array[i - 1]
-            + (velocity_state_array[i] if i < bins else velocity_state_array[i - 1])
-        ) / 2
-        pos = (
-            position_state_array[j - 1]
-            + (position_state_array[j] if j < bins else position_state_array[j - 1])
-        ) / 2
-        float_state = (pos, velocity)
+        float_state = tuple(
+            real(states_arrays[i][1], state[i]) for i in range(len(states_arrays))
+        )
         observation = np.array(float_state).reshape(
             (-1,) + model.observation_space.shape
         )
