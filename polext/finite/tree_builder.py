@@ -1,8 +1,6 @@
 from typing import Callable, Dict, Iterable, List, Tuple, TypeVar
 
 from polext.decision_tree import DecisionTree
-from polext.predicate import Predicate
-
 from polext.finite.greedy_builder import (
     greedy_tree_builder,
     greedy_q_selection,
@@ -10,6 +8,10 @@ from polext.finite.greedy_builder import (
 )
 from polext.finite.max_probability_tree_builder import max_probability_tree_builder
 from polext.finite.optimistic_tree_builder import optimistic_tree_builder
+from polext.finite.simulated_annealing_tree_builder import (
+    simulated_annealing_tree_builder,
+)
+from polext.predicate import Predicate
 
 S = TypeVar("S")
 
@@ -26,6 +28,7 @@ _METHODS_ = {
     "greedy-nactions": greedy_tree_builder(greedy_opt_action_selection, tree_loss),
     "max-probability": max_probability_tree_builder(tree_loss),
     "optimistic": optimistic_tree_builder(tree_loss),
+    "simulated-annealing": simulated_annealing_tree_builder(tree_loss),
 }
 
 
