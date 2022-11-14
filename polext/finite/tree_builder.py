@@ -43,5 +43,5 @@ def build_tree(
     nactions = len(Qtable[states[0]])
     tree = _METHODS_[method.lower().strip()](
         set(states), Qtable, predicates_table, nactions, max_depth
-    )
+    ).simplified()
     return tree, tree_loss(tree, Qtable, states)
