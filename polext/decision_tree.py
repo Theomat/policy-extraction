@@ -26,6 +26,9 @@ class DecisionTree(ABC, Generic[S]):
     def print(self, parent: Optional[Tree] = None):
         pass
 
+    def size(self) -> int:
+        return 1
+
 
 @dataclass
 class Node(DecisionTree[S]):
@@ -66,6 +69,17 @@ class Node(DecisionTree[S]):
         pred_text = Text.assemble((f"{self.predicate}", "bright_blue"))
         first = parent is None
         if first:
+            size = self.size()
+            if size > 50:
+                print(
+                    Text.assemble(
+                        (
+                            f"Tree of size {size} is too big for the console...",
+                            "italic red",
+                        )
+                    )
+                )
+                return
             parent = Tree(pred_text)
         else:
             parent = parent.add(pred_text)
@@ -73,6 +87,9 @@ class Node(DecisionTree[S]):
         self.right.print(parent)
         if first:
             print(parent)
+
+    def size(self) -> int:
+        return 1 + self.left.size() + self.right.size()
 
 
 @dataclass
