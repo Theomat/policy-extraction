@@ -130,7 +130,7 @@ def simulated_annealing_tree_builder(
                         nodes += 1
                     leaves = new_leaves
                     best_loss = n_loss
-                temp = temp / (1 + alpha)
+                    temp = temp / (1 + alpha)
 
         return tree
 
