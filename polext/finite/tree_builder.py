@@ -28,7 +28,9 @@ _METHODS_ = {
     "greedy-nactions": greedy_tree_builder(greedy_opt_action_selection, tree_loss),
     "max-probability": max_probability_tree_builder(tree_loss),
     "optimistic": optimistic_tree_builder(tree_loss),
-    "simulated-annealing": simulated_annealing_tree_builder(tree_loss),
+    "simulated-annealing": simulated_annealing_tree_builder(
+        tree_loss, 0.5, 200, 100, 0.9, 100
+    ),
 }
 
 
