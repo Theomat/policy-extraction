@@ -72,8 +72,7 @@ if __name__ == "__main__":
     max_depth: bool = parameters.depth
 
     if finite_method != "none":
-        from polext.finite import build_tree
-        from polext.finite.tree_builder import METHODS as FINITE_METHODS
+        from polext.finite import build_tree, FINITE_METHODS
 
         module = importlib.import_module(
             script_path.replace(".py", "").replace("/", ".")
@@ -93,7 +92,7 @@ if __name__ == "__main__":
             )
             print()
         if finite_method == "all":
-            for method in FINITE_METHODS.keys():
+            for method in FINITE_METHODS:
                 tree, score = build_tree(states, Q, predicates, max_depth, method)
                 print("Method:", method)
                 print("Lost Q-Values:", score)
