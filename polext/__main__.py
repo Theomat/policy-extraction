@@ -1,39 +1,43 @@
 import importlib
+import sys
+from typing import Callable, List, Optional
 import numpy as np
 
 from rich import print
 from rich.text import Text
 
-from polext.decision_tree import Leaf
+from polext.decision_tree import DecisionTree, Leaf
+from polext.finite.tree_builder import build_forest
+from polext.forest import Forest, majority_vote
 
 
-def eval_tree(tree, episodes: int, env) -> tuple[float, float]:
+def eval_policy(
+    policy: Callable[[np.ndarray], int], episodes: int, env
+) -> tuple[float, float]:
     total_rewards = []
     for _ in range(episodes):
         total_reward = 0
         done = False
         state = env.reset()
         while not done:
-            state, reward, done, _ = env.step(tree(state))
+            state, reward, done, _ = env.step(policy(state))
             total_reward += reward
         total_rewards.append(total_reward)
     return np.mean(total_rewards), 2 * np.std(total_rewards)
+
+
+def eval_forest(forest: Forest, episodes: int, env) -> tuple[float, float]:
+    return eval_policy(lambda state: majority_vote(forest(state)), episodes, env)
 
 
 def eval_q(Q, episodes: int, env) -> tuple[float, float]:
-    total_rewards = []
-    for _ in range(episodes):
-        total_reward = 0
-        done = False
-        state = env.reset()
-        while not done:
-            action = np.argmax(Q(state))
-            if isinstance(action, np.ndarray):
-                action = action[0]
-            state, reward, done, _ = env.step(action)
-            total_reward += reward
-        total_rewards.append(total_reward)
-    return np.mean(total_rewards), 2 * np.std(total_rewards)
+    def f(state) -> int:
+        action = np.argmax(Q(state))
+        if isinstance(action, np.ndarray):
+            action = action[0]
+        return action
+
+    return eval_policy(f, episodes, env)
 
 
 REWARD_STYLE = "gold1"
@@ -79,6 +83,12 @@ if __name__ == "__main__":
         default="none",
     )
     parser.add_argument(
+        "--forest",
+        type=int,
+        nargs=1,
+        help="train a random forest with the given number of trees",
+    )
+    parser.add_argument(
         "--eval",
         type=int,
         nargs="?",
@@ -93,6 +103,7 @@ if __name__ == "__main__":
     finite_method: str = parameters.finite
     eval_episodes: int = parameters.eval
     max_depth: bool = parameters.depth
+    forest: Optional[List[int]] = parameters.forest
 
     if finite_method != "none":
         from polext.finite import build_tree, FINITE_METHODS
@@ -106,6 +117,23 @@ if __name__ == "__main__":
         Q = Q_builder(model_path)
 
         tree = Leaf(0)
+        eval_fn = eval_policy
+        builder = build_tree
+        if forest is not None:
+            n_trees = forest[0]
+            if n_trees <= 1:
+                print(
+                    Text.assemble(
+                        ("Number of trees for a random forest must be >1!", "red")
+                    ),
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            eval_fn = eval_forest
+            builder = lambda *args, **kwargs: build_forest(
+                *args, trees=n_trees, **kwargs
+            )
+
         if eval_episodes > 0:
             env = module.__getattribute__("make_env")()
             mean, diff = eval_q(Q, eval_episodes, env)
@@ -114,23 +142,36 @@ if __name__ == "__main__":
             print()
         if finite_method == "all":
             for method in FINITE_METHODS:
-                tree, score = build_tree(states, Q, predicates, max_depth, method)
+                tree, score = builder(states, Q, predicates, max_depth, method)
                 print("Method:", Text.assemble((method, "bold")))
                 print("Lost Q-Values:", Text.assemble((str(score), FINITE_LOSS_STYLE)))
                 if eval_episodes > 0:
                     env = module.__getattribute__("make_env")()
-                    mean, diff = eval_tree(tree, eval_episodes, env)
+                    mean, diff = eval_fn(tree, eval_episodes, env)
                     print_reward(eval_episodes, mean, diff)
-                tree.print()
+                if isinstance(tree, DecisionTree):
+                    tree.print()
                 print()
+        elif finite_method not in FINITE_METHODS:
+            print(
+                Text.assemble(
+                    ('Finite tree method:"', "red"),
+                    finite_method,
+                    ('" is unkown, available methods are:', "red"),
+                    ", ".join(FINITE_METHODS),
+                ),
+                file=sys.stderr,
+            )
+            sys.exit(1)
         else:
-            tree, score = build_tree(states, Q, predicates, max_depth, finite_method)
+            tree, score = builder(states, Q, predicates, max_depth, finite_method)
             print("Lost Q-Values:", Text.assemble((str(score), FINITE_LOSS_STYLE)))
-            tree.print()
+            if isinstance(tree, DecisionTree):
+                tree.print()
 
             if eval_episodes > 0:
                 env = module.__getattribute__("make_env")()
-                mean, diff = eval_tree(tree, eval_episodes, env)
+                mean, diff = eval_fn(tree, eval_episodes, env)
                 print_reward(eval_episodes, mean, diff)
 
     else:
