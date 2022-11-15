@@ -89,6 +89,13 @@ if __name__ == "__main__":
         help="train a random forest with the given number of trees",
     )
     parser.add_argument(
+        "--seed",
+        type=int,
+        nargs=1,
+        default=127,
+        help="seed used when RNG is used",
+    )
+    parser.add_argument(
         "--eval",
         type=int,
         nargs="?",
@@ -102,6 +109,9 @@ if __name__ == "__main__":
     model_path: str = parameters.model_path
     finite_method: str = parameters.finite
     eval_episodes: int = parameters.eval
+    seed: int = parameters.seed
+    if isinstance(seed, List):
+        seed = seed[0]
     max_depth: bool = parameters.depth
     forest: Optional[List[int]] = parameters.forest
 
@@ -142,7 +152,9 @@ if __name__ == "__main__":
             print()
         if finite_method == "all":
             for method in FINITE_METHODS:
-                tree, score = builder(states, Q, predicates, max_depth, method)
+                tree, score = builder(
+                    states, Q, predicates, max_depth, method, seed=seed
+                )
                 print("Method:", Text.assemble((method, "bold")))
                 print("Lost Q-Values:", Text.assemble((str(score), FINITE_LOSS_STYLE)))
                 if eval_episodes > 0:
@@ -164,7 +176,9 @@ if __name__ == "__main__":
             )
             sys.exit(1)
         else:
-            tree, score = builder(states, Q, predicates, max_depth, finite_method)
+            tree, score = builder(
+                states, Q, predicates, max_depth, finite_method, seed=seed
+            )
             print("Lost Q-Values:", Text.assemble((str(score), FINITE_LOSS_STYLE)))
             if isinstance(tree, DecisionTree):
                 tree.print()

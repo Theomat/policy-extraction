@@ -15,6 +15,7 @@ def max_probability_tree_builder(loss):
         predicates_table: Dict[Predicate[S], Set[S]],
         nactions: int,
         max_depth: int,
+        **kwargs
     ) -> DecisionTree[S]:
         Qmax = {s: vals.index(max(vals)) for s, vals in Qtable.items()}
         classes = {action: set() for action in range(nactions)}

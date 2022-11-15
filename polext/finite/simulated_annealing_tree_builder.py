@@ -99,8 +99,10 @@ def simulated_annealing_tree_builder(
         predicates_table: Dict[Predicate[S], Set[S]],
         nactions: int,
         max_depth: int,
+        seed: int,
+        **kwargs
     ) -> DecisionTree[S]:
-        gen = random.Random(127)
+        gen = random.Random(seed)
 
         tries = max_depth * max_depth * tries_factor
 

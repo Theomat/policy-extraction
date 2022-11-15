@@ -52,6 +52,7 @@ def build_tree(
     predicates: List[Predicate[S]],
     max_depth: int,
     method: str,
+    **kwargs
 ) -> Tuple[DecisionTree[S], float]:
     Qtable = {s: Q(s) for s in states}
     predicates_table = {
@@ -59,7 +60,7 @@ def build_tree(
     }
     nactions = len(Qtable[states[0]])
     tree = _METHODS_[method.lower().strip()](
-        set(states), Qtable, predicates_table, nactions, max_depth
+        set(states), Qtable, predicates_table, nactions, max_depth, **kwargs
     ).simplified()
     return tree, tree_loss(tree, Qtable, states)
 
@@ -71,6 +72,8 @@ def build_forest(
     max_depth: int,
     method: str,
     trees: int,
+    seed: int,
+    **kwargs
 ) -> Tuple[DecisionTree[S], float]:
     Qtable = {s: Q(s) for s in states}
     predicates_table = {
@@ -79,7 +82,7 @@ def build_forest(
     nactions = len(Qtable[states[0]])
     sample_size = int(np.floor(np.sqrt(len(states))))
 
-    rng = np.random.default_rng(127)
+    rng = np.random.default_rng(seed)
 
     def gen_tree() -> DecisionTree[S]:
         sub_states = {
@@ -91,6 +94,8 @@ def build_forest(
             {p: sub_states.intersection(s) for p, s in predicates_table.items()},
             nactions,
             max_depth,
+            seed=seed,
+            **kwargs
         ).simplified()
 
     trees = [gen_tree() for _ in range(trees)]
