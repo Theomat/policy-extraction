@@ -15,6 +15,7 @@ from polext.finite.simulated_annealing_tree_builder import (
 )
 from polext.forest import Forest, majority_vote
 from polext.predicate import Predicate
+from polext.predicate_space import PredicateSpace
 
 S = TypeVar("S")
 
@@ -54,15 +55,11 @@ def build_tree(
     method: str,
     **kwargs
 ) -> Tuple[DecisionTree[S], float]:
-    Qtable = {s: Q(s) for s in states}
-    predicates_table = {
-        predicate: {s for s in states if predicate(s)} for predicate in predicates
-    }
-    nactions = len(Qtable[states[0]])
-    tree = _METHODS_[method.lower().strip()](
-        set(states), Qtable, predicates_table, nactions, max_depth, **kwargs
-    ).simplified()
-    return tree, tree_loss(tree, Qtable, states)
+    space = PredicateSpace(predicates)
+    for s in states:
+        space.add_state(s, Q(s))
+    tree = _METHODS_[method.lower().strip()](space, max_depth, **kwargs).simplified()
+    return tree, tree_loss(tree, space.Qtable, states)
 
 
 def build_forest(
