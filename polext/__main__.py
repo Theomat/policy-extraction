@@ -95,10 +95,9 @@ if __name__ == "__main__":
         help="interactive space, number of episodes",
     )
     parser.add_argument(
-        "--predicate-space",
-        type=bool,
-        default=True,
-        help="use predicate space or basic space",
+        "--default-space",
+        action="store_true",
+        help="use state space and not predicate space",
     )
     parser.add_argument(
         "--seed",
@@ -121,7 +120,7 @@ if __name__ == "__main__":
     model_path: str = parameters.model_path
     finite_method: str = parameters.finite
     eval_episodes: int = parameters.eval
-    predicate_space: bool = parameters.predicate_space
+    predicate_space: bool = not parameters.default_space
     seed: int = parameters.seed
     if isinstance(seed, List):
         seed = seed[0]
