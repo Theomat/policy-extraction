@@ -172,9 +172,7 @@ if __name__ == "__main__":
                     file=sys.stderr,
                 )
                 continue
-            tree, score = builder(
-                space, max_depth, method, seed=seed
-            )
+            tree, score = builder(space, max_depth, method, seed=seed)
             print("Method:", Text.assemble((method, "bold")))
             print("Lost Q-Values:", Text.assemble((str(score), FINITE_LOSS_STYLE)))
             if eval_episodes > 0:
