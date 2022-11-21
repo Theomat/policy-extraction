@@ -20,10 +20,10 @@ from polext.predicate_space import PredicateSpace
 S = TypeVar("S")
 
 
-def tree_loss(
-    tree: DecisionTree[S], Qtable: Dict[S, List[float]], states: Iterable[S]
-) -> float:
-    lost_reward = sum(max(Qtable[s]) - Qtable[s][tree(s)] for s in states)
+def tree_loss(tree: DecisionTree[S], space: PredicateSpace[S]) -> float:
+    lost_reward = sum(
+        max(space.Qtable[s]) - space.Qtable[s][tree(s)] for s in space.states
+    )
     return lost_reward
 
 
@@ -57,9 +57,9 @@ def build_tree(
 ) -> Tuple[DecisionTree[S], float]:
     space = PredicateSpace(predicates)
     for s in states:
-        space.add_state(s, Q(s))
+        space.visit_state(s, Q(s))
     tree = _METHODS_[method.lower().strip()](space, max_depth, **kwargs).simplified()
-    return tree, tree_loss(tree, space.Qtable, states)
+    return tree, tree_loss(tree, space)
 
 
 def build_forest(

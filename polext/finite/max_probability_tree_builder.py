@@ -1,30 +1,28 @@
 from typing import Dict, List, Set, TypeVar
 
-from polext.decision_tree import DecisionTree, Node
-from polext.predicate import Predicate
+import numpy as np
 
+from polext.decision_tree import DecisionTree, Node
 from polext.finite.greedy_builder import greedy_finisher, greedy_q_selection
+from polext.predicate_space import PredicateSpace
 
 S = TypeVar("S")
 
 
 def max_probability_tree_builder(loss):
-    def f(
-        states: Set[S],
-        Qtable: Dict[S, List[float]],
-        predicates_table: Dict[Predicate[S], Set[S]],
-        nactions: int,
-        max_depth: int,
-        **kwargs
-    ) -> DecisionTree[S]:
-        Qmax = {s: vals.index(max(vals)) for s, vals in Qtable.items()}
-        classes = {action: set() for action in range(nactions)}
-        for s in states:
+    def f(space: PredicateSpace[S], max_depth: int, **kwargs) -> DecisionTree[S]:
+        Qmax = {s: np.argmax(vals) for s, vals in space.Qtable.items()}
+        classes = {action: set() for action in range(space.nactions)}
+        for s in space.states:
             a = Qmax[s]
             classes[a].add(s)
 
         return __builder__(
-            states, Qtable, predicates_table, nactions, max_depth, Qmax, loss, classes
+            space,
+            max_depth,
+            Qmax,
+            loss,
+            classes,
         )
 
     return f
@@ -45,8 +43,8 @@ def __compute_score__(
     not_part_classes = {
         action: len(s.difference(sub_states)) for action, s in classes.items()
     }
-    tpart = sum(part_classes.values())
-    tnpart = sum(not_part_classes.values())
+    tpart = max(1, sum(part_classes.values()))
+    tnpart = max(1, sum(not_part_classes.values()))
     for s in states:
         a = Qmax[s]
         if s in sub_states:
@@ -57,57 +55,47 @@ def __compute_score__(
 
 
 def __builder__(
-    states: Set[S],
-    Qtable: Dict[S, List[float]],
-    predicates_table: Dict[Predicate[S], Set[S]],
-    nactions: int,
+    space: PredicateSpace[S],
     depth_left: int,
     Qmax: Dict[S, int],
     loss,
     classes: Dict[int, Set[S]],
 ) -> DecisionTree[S]:
     if depth_left <= 2:
-        tree = greedy_finisher(
-            states, Qtable, predicates_table, nactions, greedy_q_selection, loss
-        )
+        tree = greedy_finisher(space, greedy_q_selection, loss)
         assert tree
         return tree
 
     # Compute current score
     best_predicate = None
-    best_score = __compute_score__(states, states, Qtable, depth_left, Qmax, classes)
+    best_score = __compute_score__(
+        space.states, space.states, space.Qtable, depth_left, Qmax, classes
+    )
 
-    for candidate, sub_states in predicates_table.items():
+    for candidate, sub_states in space.predicates_set.items():
 
-        score = __compute_score__(states, sub_states, Qtable, depth_left, Qmax, classes)
+        score = __compute_score__(
+            space.states, sub_states, space.Qtable, depth_left, Qmax, classes
+        )
         if score > best_score:
             best_score = score
             best_predicate = candidate
 
     if best_predicate is None:
-        tree = greedy_finisher(
-            states, Qtable, predicates_table, nactions, greedy_q_selection, loss
-        )
+        tree = greedy_finisher(space, greedy_q_selection, loss)
         assert tree
         return tree
-    sub_states = predicates_table[best_predicate]
-    next_pred_tables = {k: v for k, v in predicates_table.items()}
-    del next_pred_tables[best_predicate]
+    sub_states = space.predicates_set[best_predicate]
+    left_space, right_space = space.children(best_predicate)
     left = __builder__(
-        states.intersection(sub_states),
-        Qtable,
-        next_pred_tables,
-        nactions,
+        left_space,
         depth_left - 1,
         Qmax,
         loss,
         {action: sub.intersection(sub_states) for action, sub in classes.items()},
     )
     right = __builder__(
-        states.difference(sub_states),
-        Qtable,
-        next_pred_tables,
-        nactions,
+        right_space,
         depth_left - 1,
         Qmax,
         loss,

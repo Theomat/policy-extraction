@@ -1,27 +1,28 @@
 from typing import Dict, List, Optional, Set, Tuple, TypeVar
 from polext.decision_tree import DecisionTree, Node, Leaf
 from polext.predicate import Predicate
+from polext.predicate_space import PredicateSpace
 
 S = TypeVar("S")
 
 
 def greedy_finisher(
-    states: Set[S],
-    Qtable: Dict[S, List[float]],
-    predicates_table: Dict[Predicate[S], Set[S]],
-    nactions: int,
-    fun,
-    loss,
-    **kwargs
+    space: PredicateSpace[S], fun, loss, **kwargs
 ) -> Optional[DecisionTree[S]]:
     best_score = 1e99
     answer = None
-    for action in range(nactions):
+    for action in range(space.nactions):
         pred, baction, _ = fun(
-            states, Qtable, predicates_table, 2, nactions, action, **kwargs
+            space.states,
+            space.Qtable,
+            space.predicates_set,
+            2,
+            space.nactions,
+            action,
+            **kwargs
         )
         tree = Node(pred, Leaf(baction), Leaf(action)) if pred else Leaf(action)
-        score = loss(tree, Qtable, states)
+        score = loss(tree, space)
         if score < best_score:
             best_score = score
             answer = tree
@@ -29,27 +30,20 @@ def greedy_finisher(
 
 
 def greedy_tree_builder(fn, loss):
-    def f(
-        states: Set[S],
-        Qtable: Dict[S, List[float]],
-        predicates_table: Dict[Predicate[S], Set[S]],
-        nactions: int,
-        max_depth: int,
-        **kwargs
-    ) -> DecisionTree[S]:
+    def f(space: PredicateSpace[S], max_depth: int, **kwargs) -> DecisionTree[S]:
         best = Leaf(0)
         best_loss = 1e99
-        for action in range(nactions):
+        for action in range(space.nactions):
             tree = __rec_tree__(
                 fn,
-                set(states),
-                Qtable,
-                predicates_table,
+                space.states,
+                space.Qtable,
+                space.predicates_set,
                 max_depth,
-                nactions,
+                space.nactions,
                 action,
             ).simplified()
-            lost_reward = loss(tree, Qtable, states)
+            lost_reward = loss(tree, space)
             if lost_reward < best_loss:
                 best = tree
                 best_loss = lost_reward

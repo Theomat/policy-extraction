@@ -1,4 +1,4 @@
-from typing import Dict, List, Set, Tuple, TypeVar
+from typing import Dict, Set, Tuple, TypeVar
 import random
 import warnings
 
@@ -7,6 +7,7 @@ import numpy as np
 
 from polext.decision_tree import DecisionTree, Node, Leaf
 from polext.predicate import Predicate
+from polext.predicate_space import PredicateSpace
 
 S = TypeVar("S")
 
@@ -94,13 +95,7 @@ def simulated_annealing_tree_builder(
     tries_factor: int,
 ):
     def f(
-        states: Set[S],
-        Qtable: Dict[S, List[float]],
-        predicates_table: Dict[Predicate[S], Set[S]],
-        nactions: int,
-        max_depth: int,
-        seed: int,
-        **kwargs
+        space: PredicateSpace[S], max_depth: int, seed: int, **kwargs
     ) -> DecisionTree[S]:
         gen = random.Random(seed)
 
@@ -110,7 +105,7 @@ def simulated_annealing_tree_builder(
         leaves = 1
         nodes = 0
         temp = temperature
-        best_loss = __real_to_zero_one__(loss(tree, Qtable, states))
+        best_loss = __real_to_zero_one__(loss(tree, space))
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             for step in range(tries):
@@ -119,12 +114,12 @@ def simulated_annealing_tree_builder(
                     leaves,
                     nodes,
                     gen,
-                    predicates_table,
-                    nactions,
+                    space.predicates_set,
+                    space.nactions,
                     max_depth,
                     probability_swap,
                 )
-                n_loss = __real_to_zero_one__(loss(neighbour, Qtable, states))
+                n_loss = __real_to_zero_one__(loss(neighbour, space))
                 keep_prob = min(1, np.exp(beta * (n_loss - best_loss) / temp))
                 if gen.random() <= keep_prob:
                     tree = neighbour
