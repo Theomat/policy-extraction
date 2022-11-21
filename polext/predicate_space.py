@@ -90,7 +90,7 @@ class PredicateSpace(Generic[S]):
         }
         # Update representatives
         if self.use_representatives:
-            for repres, s in self.representatives:
+            for repres, s in self.representatives.items():
                 target = left if s in selected_states else right
                 new_repres = tuple(p for p in repres if p != predicate)
                 target.representatives[new_repres] = s
@@ -125,7 +125,7 @@ class PredicateSpace(Generic[S]):
             }
             # Update representatives
             if self.use_representatives:
-                for repres, s in self.representatives:
+                for repres, s in self.representatives.items():
                     if s in sub_space:
                         sub_space.representatives[repres] = s
             # Update visits
