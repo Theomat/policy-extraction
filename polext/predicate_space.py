@@ -1,4 +1,4 @@
-from typing import Generic, Iterable, List, Set, Tuple, TypeVar
+from typing import Generator, Generic, Iterable, List, Set, Tuple, TypeVar
 
 import numpy as np
 
@@ -102,3 +102,32 @@ class PredicateSpace(Generic[S]):
     @property
     def states(self) -> Set[S]:
         return set(self.Qtable.keys())
+
+    def random_splits(self, seed: int) -> "Generator[PredicateSpace[S], None, None]":
+        states = list(self.states)
+        sample_size = int(np.floor(np.sqrt(len(states))))
+        rng = np.random.default_rng(seed)
+        while True:
+            sub_space = PredicateSpace(self.predicates, self.use_representatives)
+            selected_states = {
+                tuple(s) for s in rng.choice(states, size=sample_size, replace=False)
+            }
+            # Update nactions
+            sub_space.nactions = self.nactions
+            # Update counts and Qtable
+            for s in selected_states:
+                sub_space.counts[s] = self.counts[s]
+                sub_space.Qtable[s] = self.Qtable[s]
+            # Update predicates_set
+            sub_space.predicates_set = {
+                p: a.intersection(selected_states)
+                for p, a in self.predicates_set.items()
+            }
+            # Update representatives
+            if self.use_representatives:
+                for repres, s in self.representatives:
+                    if s in sub_space:
+                        sub_space.representatives[repres] = s
+            # Update visits
+            sub_space._total_visits = self._total_visits
+            yield sub_space

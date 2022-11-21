@@ -27,11 +27,10 @@ def tree_loss(tree: DecisionTree[S], space: PredicateSpace[S]) -> float:
     return lost_reward
 
 
-def forest_loss(
-    forest: Forest[S], Qtable: Dict[S, List[float]], states: Iterable[S]
-) -> float:
+def forest_loss(forest: Forest[S], space: PredicateSpace[S]) -> float:
     lost_reward = sum(
-        max(Qtable[s]) - Qtable[s][majority_vote(forest(s))] for s in states
+        max(space.Qtable[s]) - space.Qtable[s][majority_vote(forest(s))]
+        for s in space.states
     )
     return lost_reward
 
@@ -48,53 +47,37 @@ _METHODS_ = {
 
 
 def build_tree(
-    states: List[S],
-    Q: Callable[[S], List[float]],
-    predicates: List[Predicate[S]],
-    max_depth: int,
-    method: str,
-    **kwargs
+    space: PredicateSpace[S], max_depth: int, method: str, **kwargs
 ) -> Tuple[DecisionTree[S], float]:
-    space = PredicateSpace(predicates)
-    for s in states:
-        space.visit_state(s, Q(s))
     tree = _METHODS_[method.lower().strip()](space, max_depth, **kwargs).simplified()
     return tree, tree_loss(tree, space)
 
 
-def build_forest(
+def easy_space(
     states: List[S],
     Q: Callable[[S], List[float]],
     predicates: List[Predicate[S]],
+) -> PredicateSpace[S]:
+    space = PredicateSpace(predicates)
+    for s in states:
+        space.visit_state(s, Q(s))
+    return space
+
+
+def build_forest(
+    space: PredicateSpace[S],
     max_depth: int,
     method: str,
     trees: int,
     seed: int,
     **kwargs
 ) -> Tuple[DecisionTree[S], float]:
-    Qtable = {s: Q(s) for s in states}
-    predicates_table = {
-        predicate: {s for s in states if predicate(s)} for predicate in predicates
-    }
-    nactions = len(Qtable[states[0]])
-    sample_size = int(np.floor(np.sqrt(len(states))))
-
-    rng = np.random.default_rng(seed)
-
-    def gen_tree() -> DecisionTree[S]:
-        sub_states = {
-            tuple(s) for s in rng.choice(states, size=sample_size, replace=False)
-        }
-        return _METHODS_[method.lower().strip()](
-            sub_states,
-            {s: q for s, q in Qtable.items() if s in sub_states},
-            {p: sub_states.intersection(s) for p, s in predicates_table.items()},
-            nactions,
-            max_depth,
-            seed=seed,
-            **kwargs
-        ).simplified()
-
-    trees = [gen_tree() for _ in range(trees)]
+    gen = space.random_splits(seed)
+    trees = [
+        build_tree(
+            next(gen), max_depth=max_depth, method=method, seed=seed + i, **kwargs
+        )[0]
+        for i in range(trees)
+    ]
     forest = Forest(trees)
-    return forest, forest_loss(forest, Qtable, states)
+    return forest, forest_loss(forest, space)

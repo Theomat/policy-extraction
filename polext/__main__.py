@@ -7,7 +7,7 @@ from rich import print
 from rich.text import Text
 
 from polext.decision_tree import DecisionTree, Leaf
-from polext.finite.tree_builder import build_forest
+from polext.finite.tree_builder import build_forest, easy_space
 from polext.forest import Forest, majority_vote
 
 
@@ -126,6 +126,8 @@ if __name__ == "__main__":
         Q_builder = module.__getattribute__("Q_builder")
         Q = Q_builder(model_path)
 
+        space = easy_space(states, Q, predicates)
+
         tree = Leaf(0)
         eval_fn = eval_policy
         builder = build_tree
@@ -150,44 +152,38 @@ if __name__ == "__main__":
             print("Baseline Q-table:")
             print_reward(eval_episodes, mean, diff)
             print()
+        methods_todo = []
         if finite_method == "all":
-            for method in FINITE_METHODS:
-                tree, score = builder(
-                    states, Q, predicates, max_depth, method, seed=seed
-                )
-                print("Method:", Text.assemble((method, "bold")))
-                print("Lost Q-Values:", Text.assemble((str(score), FINITE_LOSS_STYLE)))
-                if eval_episodes > 0:
-                    env = module.__getattribute__("make_env")()
-                    mean, diff = eval_fn(tree, eval_episodes, env)
-                    print_reward(eval_episodes, mean, diff)
-                if isinstance(tree, DecisionTree):
-                    tree.print()
-                print()
-        elif finite_method not in FINITE_METHODS:
-            print(
-                Text.assemble(
-                    ('Finite tree method:"', "red"),
-                    finite_method,
-                    ('" is unkown, available methods are:', "red"),
-                    ", ".join(FINITE_METHODS),
-                ),
-                file=sys.stderr,
-            )
-            sys.exit(1)
+            methods_todo = FINITE_METHODS
+        elif "," in finite_method:
+            methods_todo = finite_method.split(",")
         else:
-            tree, score = builder(
-                states, Q, predicates, max_depth, finite_method, seed=seed
-            )
-            print("Lost Q-Values:", Text.assemble((str(score), FINITE_LOSS_STYLE)))
-            if isinstance(tree, DecisionTree):
-                tree.print()
+            methods_todo = [finite_method]
 
+        for method in methods_todo:
+            if method not in FINITE_METHODS:
+                print(
+                    Text.assemble(
+                        ('Finite tree method:"', "red"),
+                        method,
+                        ('" is unkown, available methods are:', "red"),
+                        ", ".join(FINITE_METHODS),
+                    ),
+                    file=sys.stderr,
+                )
+                continue
+            tree, score = builder(
+                space, max_depth, method, seed=seed
+            )
+            print("Method:", Text.assemble((method, "bold")))
+            print("Lost Q-Values:", Text.assemble((str(score), FINITE_LOSS_STYLE)))
             if eval_episodes > 0:
                 env = module.__getattribute__("make_env")()
                 mean, diff = eval_fn(tree, eval_episodes, env)
                 print_reward(eval_episodes, mean, diff)
-
+            if isinstance(tree, DecisionTree):
+                tree.print()
+            print()
     else:
         # TODO: infinite case
         pass
