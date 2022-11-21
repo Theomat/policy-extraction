@@ -57,10 +57,35 @@ def easy_space(
     states: List[S],
     Q: Callable[[S], List[float]],
     predicates: List[Predicate[S]],
+    use_representatives: bool = False,
 ) -> PredicateSpace[S]:
-    space = PredicateSpace(predicates)
+    space = PredicateSpace(predicates, use_representatives)
     for s in states:
         space.visit_state(s, Q(s))
+    return space
+
+
+def interactive_space(
+    states: List[S],
+    Q: Callable[[S], List[float]],
+    predicates: List[Predicate[S]],
+    env,
+    episodes: int,
+    use_representatives: bool = False,
+) -> PredicateSpace[S]:
+    space = PredicateSpace(predicates, use_representatives)
+    for s in states:
+        space.visit_state(s, Q(s))
+
+    for _ in range(episodes):
+        state = env.reset()
+        done = False
+        while not done:
+            Qvalues = Q(state)
+            space.visit_state(state, Qvalues)
+            action = np.argmax(Qvalues)
+            state, _, done, _ = env.step(action)
+
     return space
 
 

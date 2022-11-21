@@ -7,7 +7,7 @@ from rich import print
 from rich.text import Text
 
 from polext.decision_tree import DecisionTree, Leaf
-from polext.finite.tree_builder import build_forest, easy_space
+from polext.finite.tree_builder import build_forest, easy_space, interactive_space
 from polext.forest import Forest, majority_vote
 
 
@@ -89,6 +89,18 @@ if __name__ == "__main__":
         help="train a random forest with the given number of trees",
     )
     parser.add_argument(
+        "--interactive",
+        type=int,
+        nargs=1,
+        help="interactive space, number of episodes",
+    )
+    parser.add_argument(
+        "--predicate-space",
+        type=bool,
+        default=True,
+        help="use predicate space or basic space",
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         nargs=1,
@@ -109,11 +121,13 @@ if __name__ == "__main__":
     model_path: str = parameters.model_path
     finite_method: str = parameters.finite
     eval_episodes: int = parameters.eval
+    predicate_space: bool = parameters.predicate_space
     seed: int = parameters.seed
     if isinstance(seed, List):
         seed = seed[0]
     max_depth: bool = parameters.depth
     forest: Optional[List[int]] = parameters.forest
+    interactive: Optional[List[int]] = parameters.interactive
 
     if finite_method != "none":
         from polext.finite import build_tree, FINITE_METHODS
@@ -126,7 +140,12 @@ if __name__ == "__main__":
         Q_builder = module.__getattribute__("Q_builder")
         Q = Q_builder(model_path)
 
-        space = easy_space(states, Q, predicates)
+        space = easy_space(states, Q, predicates, predicate_space)
+        if interactive is not None:
+            env = module.__getattribute__("make_env")()
+            space = interactive_space(
+                states, Q, predicates, env, interactive[0], predicate_space
+            )
 
         tree = Leaf(0)
         eval_fn = eval_policy
