@@ -14,7 +14,7 @@ python finite/cart-pole/generate_policy.py cart_pole.pt
 This will evaluate each tree built on 100 episodes and this will build a tree for every method available for the finite state space case:
 
 ```
-python -m polext finite/cart-pole/env.py cart_pole.pt --finite all --eval 100
+python -m polext finite/cart-pole/env.py cart_pole.pt all 100 --finite
 ```
 
 You can also change the maximum allowed depth with ``--depth new_max``.
