@@ -1,43 +1,31 @@
-# Lunar Lander experiment
+# Lunar Lander
 
-Once the setup is done, the experiment can be done by executing the ``experiment.sh`` script.
+The environement used is `LunarLander-v2` with the state space discretized where each dimension is split into linear bins.
+This can be changed in the ``env.py`` file.
 
-<!-- toc -->
-Table of contents:
+## Generating a policy
 
-- [Setup](#setup)
-- [Generating a Policy](#generating-a-policy)
-- [Extracting a Decision Tree from a Policy](#extracting-a-decision-tree-from-a-policy)
+We recommend to either directly download a model from ``rl-zoo`` or to train it yourself, the latter having the advantage of beign compatible with your current versions of dependencies.
 
-<!-- tocstop -->
-
-## Setup
-
-```bash
-# install swig (dependency for Box2D gym environments)
-sudo apt install swig
-
-# install dependencies
-pip install -r requirements.txt
+To download the model: 
+```
+python -m rl_zoo3.load_from_hub --algo dqn --env LunarLander-v2 -f logs/ -orga sb3
 ```
 
-## Generating a Policy
+To train a model from scratch:
 
-Executing:
-
-```bash
-python generate_policy.py my_dqn.pt --env "LunarLander-v2"
+```
+python -m rl_zoo3.train --algo dqn --env LunarLander-v2 -f logs/
 ```
 
-will output a `my_dqn.pt` model file.
+The model file that will be used in the next step can be found at ``logs/dqn/<env>/<env>.zip``
 
-## Extracting a Decision Tree from a Policy
+## Converting the DQN model obtained into a decision tree
 
-You can extract the policy using:
+This will evaluate each tree built on 100 episodes and this will build a tree for every method available for the infinite state space case:
 
-```bash
-python -m polext extract.py my_dqn.pt
+```
+python -m polext infinite/lunar-lander/env.py my_model.pt --infinite all --eval 100 --sampled 100
 ```
 
-TODO test
-
+You can also change the maximum allowed depth with ``--depth new_max``.
