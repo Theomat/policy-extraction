@@ -1,12 +1,11 @@
 import importlib
 import sys
-from typing import Callable, List, Optional, Set, Tuple, Union
-import numpy as np
+from typing import Any, Callable, List, Tuple, Union
 
 from rich import print
 from rich.text import Text
 
-from polext.decision_tree import DecisionTree, Leaf
+from polext.decision_tree import DecisionTree
 from polext.forest import Forest, majority_vote
 from polext.predicate_space import PredicateSpace, enumerated_space, sampled_space
 from polext.interaction_helper import eval_policy, eval_q
@@ -32,23 +31,13 @@ def print_reward(eval_episodes: int, mean: float, diff: float):
 
 
 def configure_tree_or_forest(
-    forest: Optional[List[int]], build_tree: Callable, build_forest: Callable
-) -> Tuple[Callable, Callable]:
-    eval_fn = eval_policy
-    builder = build_tree
-    if forest is not None:
-        n_trees = forest[0]
-        if n_trees <= 1:
-            print(
-                Text.assemble(
-                    ("Number of trees for a random forest must be >1!", "red")
-                ),
-                file=sys.stderr,
-            )
-            sys.exit(1)
+    ntrees: int, tree: Tuple[Callable, Callable], forest: Tuple[Callable, Callable]
+) -> Tuple[Callable, Tuple[Callable, Callable]]:
+    if ntrees > 1:
         eval_fn = lambda f, *args: eval_policy(f.policy(majority_vote), *args)
-        builder = lambda *args, **kwargs: build_forest(*args, trees=n_trees, **kwargs)
-    return eval_fn, builder
+        builder = lambda *args, **kwargs: forest[0](*args, trees=ntrees, **kwargs)
+        return eval_fn, (builder, forest[1])
+    return eval_policy, tree
 
 
 def run_method(
@@ -57,17 +46,15 @@ def run_method(
     method: str,
     seed: int,
     allowed_methods: List[str],
-    eval_fn: Callable,
     builder: Callable,
     callback: Callable,
-    eval_episodes: int,
 ):
     if method not in allowed_methods:
         print(
             Text.assemble(
                 ('Method:"', "red"),
                 method,
-                ('" is unkown, available methods are:', "red"),
+                ('" is unknown, available methods are:', "red"),
                 ", ".join(allowed_methods),
             ),
             file=sys.stderr,
@@ -76,10 +63,6 @@ def run_method(
     print("Method:", Text.assemble((method, "bold")))
     out = builder(space, max_depth, method, seed=seed)
     tree = callback(out)
-    if eval_episodes > 0:
-        env = module.__getattribute__("make_env")()
-        mean, diff = eval_fn(tree, eval_episodes, env)
-        print_reward(eval_episodes, mean, diff)
     if isinstance(tree, DecisionTree):
         tree.print()
     print()
@@ -102,154 +85,169 @@ if __name__ == "__main__":
         help="DQN model file to load",
     )
     parser.add_argument(
-        "--finite",
         type=str,
-        nargs="?",
-        help="finite state space, argument is the name  of the method to use",
-        default="none",
+        dest="method",
+        help="methods to be used",
     )
     parser.add_argument(
-        "--infinite",
-        type=str,
-        nargs="?",
-        help="infinite state space, argument is the name of the method to use",
-        default="none",
-    )
-    parser.add_argument(
-        "--forest",
         type=int,
-        nargs=1,
-        help="train a random forest with the given number of trees",
-    )
-    parser.add_argument(
-        "--sampled",
-        type=int,
-        nargs=1,
-        help="sample state space parameter is number of episodes to sample for",
-    )
-    parser.add_argument(
-        "--default-space",
-        action="store_true",
-        help="use state space and not predicate space",
+        dest="episodes",
+        help="number of episodes used for evaluation",
     )
     parser.add_argument(
         "--seed",
         type=int,
-        nargs=1,
         default=127,
         help="seed used when RNG is used",
     )
-    parser.add_argument(
-        "--eval",
+
+    group = parser.add_argument_group(
+        "State space", "parameters that change the state space"
+    )
+    group.add_argument(
+        "--finite",
+        action="store_true",
+        help="finite state space and state space is not sampled",
+    )
+    group.add_argument(
+        "--default-space",
+        action="store_true",
+        help="use state space and not predicate space",
+    )
+    group.add_argument(
+        "--iterations",
         type=int,
-        nargs="?",
-        help="number of evaluation episodes",
+        default=1,
+        help="number of iterations of the state space distribution evaluation",
+    )
+
+    group = parser.add_argument_group(
+        "Model parameters", "parameters that change the model"
+    )
+    group.add_argument(
+        "--forest",
+        type=int,
+        help="train a random forest with the given number of trees",
         default=0,
     )
-    parser.add_argument("--depth", type=int, default=5, help="max decision tree depth")
+    group.add_argument("--depth", type=int, default=5, help="max decision tree depth")
 
     parameters = parser.parse_args()
     script_path: str = parameters.script_path
     model_path: str = parameters.model_path
-    finite_method: str = parameters.finite
-    infinite_method: str = parameters.infinite
-    eval_episodes: int = parameters.eval
+    method: str = parameters.method
+    episodes: int = parameters.episodes
     predicate_space: bool = not parameters.default_space
+    iterations: int = parameters.iterations
     seed: int = parameters.seed
-    if isinstance(seed, List):
-        seed = seed[0]
-    max_depth: bool = parameters.depth
-    forest: Optional[List[int]] = parameters.forest
-    sampled: Optional[List[int]] = parameters.sampled
+    finite: bool = parameters.finite
+    max_depth: int = parameters.depth
+    ntrees: int = parameters.forest
 
+    # Parameters check
+    if episodes < 1:
+        print(
+            Text.assemble(("You must evaluate on at least one episode!", "red")),
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    if iterations < 1:
+        print(
+            Text.assemble(("You cannot do less than one iteration!", "red")),
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    if finite and iterations > 1:
+        print(
+            Text.assemble(
+                ("You cannot do mutliple iterations with the finite flag!", "red")
+            ),
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    # Load module
     module = importlib.import_module(script_path.replace(".py", "").replace("/", "."))
     predicates = module.__getattribute__("predicates")
     Q_builder = module.__getattribute__("Q_builder")
     Q = Q_builder(model_path)
+    # Empirical evaluation of Q-values
+    env = module.__getattribute__("make_env")()
+    mean, diff = eval_q(Q, episodes, env)
+    print("Baseline Q-table:")
+    print_reward(episodes, mean, diff)
+    print()
 
-    # Eval Q-values if required
-    if eval_episodes > 0:
-        env = module.__getattribute__("make_env")()
-        mean, diff = eval_q(Q, eval_episodes, env)
-        print("Baseline Q-table:")
-        print_reward(eval_episodes, mean, diff)
-        print()
+    from polext.finite import FINITE_METHODS
 
-    if finite_method != "none":
-        from polext.finite import build_tree, FINITE_METHODS, build_forest
+    # Find out methods to run
+    methods_todo = []
+    if method == "all":
+        methods_todo = FINITE_METHODS
+    elif "," in method:
+        methods_todo = method.split(",")
+    else:
+        methods_todo = [method]
 
-        # Setup predicate space
+    # Guess if environment is finite or infinite
+    is_infinite = True
+    try:
+        states = module.__getattribute__("states")
+        is_infinite = False
+    except:
+        pass
+    if finite and is_infinite:
+        print(
+            Text.assemble(
+                ("You cannot use the finite flag with an infinite state space!", "red")
+            ),
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    # Setup predicate space
+    if finite:
         states = module.__getattribute__("states")
         space = enumerated_space(states, Q, predicates, predicate_space)
-        if sampled is not None:
-            env = module.__getattribute__("make_env")()
-            space = sampled_space(env, sampled[0], Q, predicates, predicate_space)
-        # Setup eval function and building function
-        eval_fn, builder = configure_tree_or_forest(forest, build_tree, build_forest)
-        # Find out methods to run
-        methods_todo = []
-        if finite_method == "all":
-            methods_todo = FINITE_METHODS
-        elif "," in finite_method:
-            methods_todo = finite_method.split(",")
-        else:
-            methods_todo = [finite_method]
-
-        def callback(
-            out: Tuple[Union[DecisionTree, Forest], float]
-        ) -> Union[DecisionTree, Forest]:
-            tree, score = out
-            print("Lost Q-Values:", Text.assemble((str(score), FINITE_LOSS_STYLE)))
-            return tree
-
-        # Run the methods
-        for method in methods_todo:
-            run_method(
-                space,
-                max_depth,
-                method,
-                seed,
-                FINITE_METHODS,
-                eval_fn,
-                builder,
-                callback,
-                eval_episodes,
-            )
-
     else:
-        from polext.finite import build_tree, FINITE_METHODS, build_forest
+        space = sampled_space(env, episodes, Q, predicates, predicate_space)
 
-        assert sampled is not None
-        env = module.__getattribute__("make_env")()
-        space = sampled_space(env, sampled[0], Q, predicates, predicate_space)
+    # Setup eval function and building function
+    from polext.finite import build_forest, tree_loss, forest_loss
 
-        # Setup eval function and building function
-        eval_fn, builder = configure_tree_or_forest(forest, build_tree, build_forest)
-        # Find out methods to run
-        methods_todo = []
-        if infinite_method == "all":
-            methods_todo = FINITE_METHODS
-        elif "," in infinite_method:
-            methods_todo = infinite_method.split(",")
-        else:
-            methods_todo = [infinite_method]
+    if is_infinite:
+        from polext.infinite import build_tree
+    else:
+        from polext.finite import build_tree
 
-        def callback(
-            out: Tuple[Union[DecisionTree, Forest], float]
-        ) -> Union[DecisionTree, Forest]:
-            tree, score = out
+    eval_fn, (base_builder, loss) = configure_tree_or_forest(
+        ntrees, (build_tree, tree_loss), (build_forest, forest_loss)
+    )
+    builder = lambda *args, **kwargs: base_builder(
+        *args, Qfun=Q, env=env, episodes=episodes, iterations=iterations, **kwargs
+    )
+
+    def callback(
+        out: Tuple[Union[DecisionTree, Forest], Any]
+    ) -> Union[DecisionTree, Forest]:
+        tree, score = out
+        if not is_infinite and finite:
             print("Lost Q-Values:", Text.assemble((str(score), FINITE_LOSS_STYLE)))
-            return tree
-
-        # Run the methods
-        for method in methods_todo:
-            run_method(
-                space,
-                max_depth,
-                method,
-                seed,
-                FINITE_METHODS,
-                eval_fn,
-                builder,
-                callback,
+            score = eval_fn(tree, episodes, env)
+        else:
+            print(
+                "Lost Q-Values:",
+                Text.assemble((str(loss(tree, space)), FINITE_LOSS_STYLE)),
             )
+        print_reward(episodes, score[0], score[1])
+        return tree
+
+    for method in methods_todo:
+        run_method(
+            space,
+            max_depth,
+            method,
+            seed,
+            FINITE_METHODS,
+            builder,
+            callback,
+        )
