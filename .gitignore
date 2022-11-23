@@ -1,6 +1,11 @@
 # VC CODE
 .vscode
 
+# dtControl
+benchmark.html
+.benchmark_suite
+decision_trees
+
 # Model trained with RL ZOO
 logs
 
