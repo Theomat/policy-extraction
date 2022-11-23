@@ -9,35 +9,7 @@ from rich.text import Text
 from polext.decision_tree import DecisionTree, Leaf
 from polext.forest import Forest, majority_vote
 from polext.predicate_space import PredicateSpace, enumerated_space, sampled_space
-
-
-def eval_policy(
-    policy: Callable[[np.ndarray], int], episodes: int, env
-) -> tuple[float, float]:
-    total_rewards = []
-    for _ in range(episodes):
-        total_reward = 0
-        done = False
-        state = env.reset()
-        while not done:
-            state, reward, done, _ = env.step(policy(state))
-            total_reward += reward
-        total_rewards.append(total_reward)
-    return np.mean(total_rewards), 2 * np.std(total_rewards)
-
-
-def eval_forest(forest: Forest, episodes: int, env) -> tuple[float, float]:
-    return eval_policy(lambda state: majority_vote(forest(state)), episodes, env)
-
-
-def eval_q(Q, episodes: int, env) -> tuple[float, float]:
-    def f(state) -> int:
-        action = np.argmax(Q(state))
-        if isinstance(action, np.ndarray):
-            action = action[0]
-        return action
-
-    return eval_policy(f, episodes, env)
+from polext.interaction_helper import eval_policy, eval_q
 
 
 REWARD_STYLE = "gold1"
@@ -74,7 +46,7 @@ def configure_tree_or_forest(
                 file=sys.stderr,
             )
             sys.exit(1)
-        eval_fn = eval_forest
+        eval_fn = lambda f, *args: eval_policy(f.policy(majority_vote), *args)
         builder = lambda *args, **kwargs: build_forest(*args, trees=n_trees, **kwargs)
     return eval_fn, builder
 
