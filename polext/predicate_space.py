@@ -7,6 +7,12 @@ from polext.predicate import Predicate
 S = TypeVar("S")
 
 
+def __make_hashable__(x: S) -> S:
+    if isinstance(x, np.ndarray):
+        return tuple(__make_hashable__(y) for y in x)
+    return x
+
+
 class PredicateSpace(Generic[S]):
     def __init__(
         self, predicates: Iterable[Predicate[S]], use_representatives: bool = False
@@ -39,6 +45,7 @@ class PredicateSpace(Generic[S]):
         if repres in self.representatives:
             state = self.representatives[repres]
         else:
+            state = __make_hashable__(state)
             self.representatives[repres] = state
             # Update predicate set
             for p in repres:
@@ -46,6 +53,7 @@ class PredicateSpace(Generic[S]):
         return state
 
     def state_probability(self, state: S) -> float:
+        state = __make_hashable__(state)
         return self.counts.get(state, 0) / max(1, self._total_visits)
 
     def _add_stats_(self, state: S, Q_values: List[float]):
