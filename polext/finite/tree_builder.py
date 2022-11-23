@@ -1,6 +1,4 @@
-from typing import Callable, List, Tuple, TypeVar
-
-import numpy as np
+from typing import Tuple, TypeVar
 
 from polext.decision_tree import DecisionTree
 from polext.finite.greedy_builder import (
@@ -14,7 +12,6 @@ from polext.finite.simulated_annealing_tree_builder import (
     simulated_annealing_tree_builder,
 )
 from polext.forest import Forest, majority_vote
-from polext.predicate import Predicate
 from polext.predicate_space import PredicateSpace
 
 S = TypeVar("S")
@@ -51,42 +48,6 @@ def build_tree(
 ) -> Tuple[DecisionTree[S], float]:
     tree = _METHODS_[method.lower().strip()](space, max_depth, **kwargs).simplified()
     return tree, tree_loss(tree, space)
-
-
-def easy_space(
-    states: List[S],
-    Q: Callable[[S], List[float]],
-    predicates: List[Predicate[S]],
-    use_representatives: bool = False,
-) -> PredicateSpace[S]:
-    space = PredicateSpace(predicates, use_representatives)
-    for s in states:
-        space.visit_state(s, Q(s))
-    return space
-
-
-def interactive_space(
-    states: List[S],
-    Q: Callable[[S], List[float]],
-    predicates: List[Predicate[S]],
-    env,
-    episodes: int,
-    use_representatives: bool = False,
-) -> PredicateSpace[S]:
-    space = PredicateSpace(predicates, use_representatives)
-    for s in states:
-        space.visit_state(s, Q(s))
-
-    for _ in range(episodes):
-        state = env.reset()
-        done = False
-        while not done:
-            Qvalues = Q(state)
-            space.visit_state(state, Qvalues)
-            action = np.argmax(Qvalues)
-            state, _, done, _ = env.step(action)
-
-    return space
 
 
 def build_forest(
