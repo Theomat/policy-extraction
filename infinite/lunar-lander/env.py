@@ -8,7 +8,7 @@ import gym
 
 bins = 20
 states_arrays = [
-    ("x", np.linspace(-1., +1., num=bins, endpoint=False)),
+    ("x", np.linspace(-1.0, +1.0, num=bins, endpoint=False)),
     ("y", np.linspace(-1.5, +1.5, num=bins, endpoint=False)),
     ("vx", np.linspace(-5, +5, num=bins, endpoint=False)),
     ("vy", np.linspace(-5, +5, num=bins, endpoint=False)),
@@ -16,7 +16,6 @@ states_arrays = [
     ("vangle", np.linspace(-5, 5, num=bins, endpoint=False)),
     ("left leg on ground", [1]),
     ("right leg on ground", [1]),
-
 ]
 
 
@@ -26,7 +25,7 @@ env = make_env()
 
 def pred(i: int, val: float):
     def f(s) -> bool:
-        return s[i] > val
+        return s[i] >= val
 
     return f
 
@@ -38,9 +37,7 @@ for i, (name, array) in enumerate(states_arrays):
 
 
 def Q_builder(path: str) -> Callable[[np.ndarray], List[float]]:
-    model = DQN(
-        "MlpPolicy", make_env(), policy_kwargs={"net_arch": [256, 256]}
-    )
+    model = DQN("MlpPolicy", make_env(), policy_kwargs={"net_arch": [256, 256]})
     model = model.load(path)
 
     def f(observation: np.ndarray) -> List[float]:
