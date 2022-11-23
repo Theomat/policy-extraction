@@ -9,7 +9,7 @@ S = TypeVar("S")
 
 def __make_hashable__(x: S) -> S:
     if isinstance(x, np.ndarray):
-        return tuple(__make_hashable__(y) for y in x)
+        return tuple(__make_hashable__(y) for y in x)  # type: ignore
     return x
 
 
@@ -18,7 +18,6 @@ class PredicateSpace(Generic[S]):
         self, predicates: Iterable[Predicate[S]], use_representatives: bool = False
     ) -> None:
         self.predicates = list(predicates)
-        self.pred2int = {p: i for i, p in enumerate(self.predicates)}
         self.counts = {}
         self.Qtable = {}
         self.use_representatives = use_representatives
@@ -66,6 +65,11 @@ class PredicateSpace(Generic[S]):
         if self.use_representatives:
             state = self.get_representative(state)
         self._add_stats_for_representative_(state, Q_values)
+
+    def reset_count(self):
+        self.Qtable = {s: Q * 0 for s, Q in self.Qtable.items()}
+        self._total_visits = 0
+        self.counts = {s: 0 for s in self.counts.keys()}
 
     def children(
         self, predicate: Predicate[S]
@@ -118,7 +122,7 @@ class PredicateSpace(Generic[S]):
         while True:
             sub_space = PredicateSpace(self.predicates, self.use_representatives)
             selected_states = {
-                tuple(s) for s in rng.choice(states, size=sample_size, replace=False)
+                tuple(s) for s in rng.choice(states, size=sample_size, replace=False)  # type: ignore
             }
             # Update nactions
             sub_space.nactions = self.nactions
