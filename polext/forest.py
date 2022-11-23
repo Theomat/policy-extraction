@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Dict, Generic, Iterable, TypeVar
+from typing import Callable, Dict, Generic, Iterable, TypeVar
 
 from polext.decision_tree import DecisionTree
 
@@ -15,6 +15,11 @@ class Forest(Generic[S]):
         for tree in self.trees:
             votes[tree(state)] += 1
         return votes
+
+    def policy(
+        self, vote_decision: Callable[[Dict[int, int]], int]
+    ) -> Callable[[S], int]:
+        return lambda s: vote_decision(self(s))
 
 
 def majority_vote(votes: Dict[int, int]) -> int:
