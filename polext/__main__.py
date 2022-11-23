@@ -88,6 +88,7 @@ def run_method(
     eval_fn: Callable,
     builder: Callable,
     callback: Callable,
+    eval_episodes: int,
 ):
     if method not in allowed_methods:
         print(
@@ -240,6 +241,7 @@ if __name__ == "__main__":
                 eval_fn,
                 builder,
                 callback,
+                eval_episodes,
             )
 
     else:
