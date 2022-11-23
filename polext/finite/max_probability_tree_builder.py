@@ -31,26 +31,28 @@ def max_probability_tree_builder(loss):
 def __compute_score__(
     states: Set[S],
     sub_states: Set[S],
-    Qtable: Dict[S, List[float]],
+    space: PredicateSpace[S],
     depth_left: int,
     Qmax: Dict[S, int],
     classes: Dict[int, Set[S]],
 ) -> float:
     score = 0
     part_classes = {
-        action: len(s.intersection(sub_states)) for action, s in classes.items()
+        action: sum(space.state_probability(x) for x in s.intersection(sub_states))
+        for action, s in classes.items()
     }
     not_part_classes = {
-        action: len(s.difference(sub_states)) for action, s in classes.items()
+        action: sum(space.state_probability(x) for x in s.difference(sub_states))
+        for action, s in classes.items()
     }
-    tpart = max(1, sum(part_classes.values()))
-    tnpart = max(1, sum(not_part_classes.values()))
+    tpart = max(1e-99, sum(part_classes.values()))
+    tnpart = max(1e-99, sum(not_part_classes.values()))
     for s in states:
         a = Qmax[s]
         if s in sub_states:
-            score += part_classes[a] / tpart * Qtable[s][Qmax[s]]
+            score += part_classes[a] / tpart * space.Qtable[s][Qmax[s]]
         else:
-            score += not_part_classes[a] / tnpart * Qtable[s][Qmax[s]]
+            score += not_part_classes[a] / tnpart * space.Qtable[s][Qmax[s]]
     return score
 
 
@@ -69,13 +71,13 @@ def __builder__(
     # Compute current score
     best_predicate = None
     best_score = __compute_score__(
-        space.states, space.states, space.Qtable, depth_left, Qmax, classes
+        space.states, space.states, space, depth_left, Qmax, classes
     )
 
     for candidate, sub_states in space.predicates_set.items():
 
         score = __compute_score__(
-            space.states, sub_states, space.Qtable, depth_left, Qmax, classes
+            space.states, sub_states, space, depth_left, Qmax, classes
         )
         if score > best_score:
             best_score = score
