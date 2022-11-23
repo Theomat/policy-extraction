@@ -36,7 +36,7 @@ for i, (name, array) in enumerate(states_arrays):
 
 def Q_builder(path: str) -> Callable[[np.ndarray], List[float]]:
     model = DQN(
-        "MlpPolicy", gym.make("Acrobot-v1"), policy_kwargs={"net_arch": [256, 256]}
+        "MlpPolicy", make_env(), policy_kwargs={"net_arch": [256, 256]}
     )
     model = model.load(path)
 
