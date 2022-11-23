@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Iterable, List, Tuple, TypeVar
+from typing import Callable, List, Tuple, TypeVar
 
 import numpy as np
 
@@ -96,13 +96,13 @@ def build_forest(
     trees: int,
     seed: int,
     **kwargs
-) -> Tuple[DecisionTree[S], float]:
+) -> Tuple[Forest[S], float]:
     gen = space.random_splits(seed)
-    trees = [
+    our_trees = [
         build_tree(
             next(gen), max_depth=max_depth, method=method, seed=seed + i, **kwargs
         )[0]
         for i in range(trees)
     ]
-    forest = Forest(trees)
+    forest = Forest(our_trees)
     return forest, forest_loss(forest, space)
