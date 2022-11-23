@@ -25,7 +25,7 @@ The model file that will be used in the next step can be found at ``logs/dqn/<en
 This will evaluate each tree built on 100 episodes and this will build a tree for every method available for the infinite state space case:
 
 ```
-python -m polext finite/acrobot/env.py my_model.pt --infinite all --eval 100 --sampled 100
+python -m polext infinite/acrobot/env.py my_model.pt --infinite all --eval 100 --sampled 100
 ```
 
 You can also change the maximum allowed depth with ``--depth new_max``.
