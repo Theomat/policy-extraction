@@ -134,7 +134,7 @@ class PredicateSpace(Generic[S]):
             # Update representatives
             if self.use_representatives:
                 for repres, s in self.representatives.items():
-                    if s in sub_space:
+                    if s in selected_states:
                         sub_space.representatives[repres] = s
             # Update visits
             sub_space._total_visits = self._total_visits
