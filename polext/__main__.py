@@ -30,16 +30,6 @@ def print_reward(eval_episodes: int, mean: float, diff: float):
     )
 
 
-def configure_tree_or_forest(
-    ntrees: int, tree: Tuple[Callable, Callable], forest: Tuple[Callable, Callable]
-) -> Tuple[Callable, Tuple[Callable, Callable]]:
-    if ntrees > 1:
-        eval_fn = lambda f, *args: eval_policy(f.policy(majority_vote), *args)
-        builder = lambda *args, **kwargs: forest[0](*args, trees=ntrees, **kwargs)
-        return eval_fn, (builder, forest[1])
-    return eval_policy, tree
-
-
 def run_method(
     space: PredicateSpace,
     max_depth: int,
@@ -219,9 +209,13 @@ if __name__ == "__main__":
     else:
         from polext.finite import build_tree
 
-    eval_fn, (base_builder, loss) = configure_tree_or_forest(
-        ntrees, (build_tree, tree_loss), (build_forest, forest_loss)
-    )
+    eval_fn = eval_policy
+    loss = tree_loss
+    base_builder = build_tree
+    if ntrees > 1:
+        eval_fn = lambda f, *args: eval_policy(f.policy(majority_vote), *args)
+        base_builder = lambda *args, **kwargs: build_forest(*args, trees=ntrees, **kwargs)
+        loss = forest_loss
     builder = lambda *args, **kwargs: base_builder(
         *args, Qfun=Q, env=env, episodes=episodes, iterations=iterations, **kwargs
     )
