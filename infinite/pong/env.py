@@ -26,13 +26,15 @@ class VecActionWrapper(VecEnvWrapper):
         super().__init__(env)
 
     def step(self, action: int) -> Tuple[np.ndarray, float, bool, dict]:
-        return self.venv.step([action])
+        obs, r, done, info = self.venv.step([action])
+        return obs, r[0], done[0], info
 
     def step_wait(self) -> VecEnvStepReturn:
         return self.venv.step_wait()
 
     def reset(self) -> VecEnvObs:
-        return self.venv.reset()
+        obs = self.venv.reset()
+        return obs
 
 
 make_env = lambda: VecActionWrapper(
@@ -46,10 +48,8 @@ def Q_builder(path: str) -> Callable[[np.ndarray], List[float]]:
 
     def f(observation: np.ndarray) -> List[float]:
         observation = (
-            torch.tensor(observation, device=model.device)[0]
-            .swapdims_(0, 2)
-            .swapdims_(1, 2)
-        ).unsqueeze_(0)
+            torch.tensor(observation, device=model.device).swapdims(1, 3).swapdims(2, 3)
+        )
         with torch.no_grad():
             q_values = model.q_net(observation)[0]
         return [x.item() for x in q_values]
@@ -57,11 +57,21 @@ def Q_builder(path: str) -> Callable[[np.ndarray], List[float]]:
     return f
 
 
+def listify(x):
+    if isinstance(x, tuple):
+        return [listify(y) for y in x]
+    return x
+
+
 def ready(obs):
-    nobs = np.asarray(obs)
-    if len(nobs.shape) == 4:
-        nobs = nobs[0]
-    return nobs
+    if isinstance(obs, tuple):
+        obs = np.asarray(listify(obs))
+    if isinstance(obs, np.ndarray):
+        nobs = np.asarray(obs)
+        if len(nobs.shape) == 4:
+            nobs = nobs[0]
+        return nobs
+    return obs
 
 
 predicates = [
