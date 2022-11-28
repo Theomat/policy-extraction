@@ -43,12 +43,13 @@ pip install -r requirements.txt
 
 Please see each ``README`` file in the corresponding folders:
 
-| Environment  | State Space | Policy downloaded from rl-zoo | Folder |
+| Environment  | State Space | Policy trained with rl-zoo | Folder |
 |--------------|:-----:|:-----------:|:---------|
-| Cart-Pole-v1    | Finite    |        No  | `finite/cart-pole` |
-| Lunar-Lander    | Infinite  |        Yes | `infinite/lunar-lander` |
-| Mountain-Car-v0 | Finite    |        Yes | `finite/mountain-car` |
-| Pong            | Infinite  |        Yes | `infinite/pong` |
+| [Acrobot-v1](https://www.gymlibrary.dev/environments/classic_control/acrobot/)    | Infinite  |        Yes | `infinite/acrobot` |
+| [Cart-Pole-v1](https://www.gymlibrary.dev/environments/classic_control/cart_pole/)    | Finite    |        No  | `finite/cart-pole` |
+| [Lunar-Lander-v2](https://www.gymlibrary.dev/environments/box2d/lunar_lander/)    | Infinite  |        Yes | `infinite/lunar-lander` |
+| [Mountain-Car-v0](https://www.gymlibrary.dev/environments/classic_control/mountain_car/) | Finite    |        Yes | `finite/mountain-car` |
+| [Pong](https://www.gymlibrary.dev/environments/atari/pong/)            | Infinite  |        Yes | `infinite/pong` |
 
 ## Citing
 

@@ -1,4 +1,4 @@
-# Acrobot
+# [Acrobot](https://www.gymlibrary.dev/environments/classic_control/acrobot/)
 
 The environement used is `Acrobot-v1` with the state space discretized where each dimension is split into linear bins.
 This can be changed in the ``env.py`` file.
@@ -7,7 +7,7 @@ This can be changed in the ``env.py`` file.
 
 We recommend to either directly download a model from ``rl-zoo`` or to train it yourself, the latter having the advantage of beign compatible with your current versions of dependencies.
 
-To download the model: 
+To download the model:
 ```
 python -m rl_zoo3.load_from_hub --algo dqn --env Acrobot-v1 -f logs/ -orga sb3
 ```
