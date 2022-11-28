@@ -46,7 +46,9 @@ def Q_builder(path: str) -> Callable[[np.ndarray], List[float]]:
 
     def f(observation: np.ndarray) -> List[float]:
         observation = (
-            torch.tensor(observation, device=model.device)[0].swapdims_(0, 2)
+            torch.tensor(observation, device=model.device)[0]
+            .swapdims_(0, 2)
+            .swapdims_(1, 2)
         ).unsqueeze_(0)
         with torch.no_grad():
             q_values = model.q_net(observation)[0]
@@ -55,10 +57,17 @@ def Q_builder(path: str) -> Callable[[np.ndarray], List[float]]:
     return f
 
 
+def ready(obs):
+    nobs = np.asarray(obs)
+    if len(nobs.shape) == 4:
+        nobs = nobs[0]
+    return nobs
+
+
 predicates = [
     Predicate(
         "my paddle y < ball y",
-        lambda obs: get_paddle_y(MY_PADDLE, obs[0]) < get_ball_pos(obs[0])[1],
+        lambda obs: get_paddle_y(MY_PADDLE, ready(obs)) < get_ball_pos(ready(obs))[1],
     ),
 ]
 
@@ -86,7 +95,7 @@ def get_ball_speed(img: np.ndarray) -> Tuple[int, int]:
 
 def make_pred(val: int, getter: Callable):
     def f(obs):
-        return val <= getter(obs[0])
+        return val <= getter(ready(obs))
 
     return f
 
