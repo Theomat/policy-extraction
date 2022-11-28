@@ -2,16 +2,42 @@ from typing import Callable, List, Tuple
 import numpy as np
 from stable_baselines3 import DQN
 from stable_baselines3.common.vec_env.vec_frame_stack import VecFrameStack
+from stable_baselines3.common.vec_env.base_vec_env import (
+    VecEnvWrapper,
+    VecEnv,
+    VecEnvStepReturn,
+    VecEnvObs,
+)
 from stable_baselines3.common.env_util import make_atari_env
 
 from polext import Predicate
+
 import torch
 
 
-make_env = lambda: VecFrameStack(
-    make_atari_env("PongNoFrameskip-v4", wrapper_kwargs={"screen_size": 84}), 4, "last"
+class VecActionWrapper(VecEnvWrapper):
+    """
+    Vectorize the action
+
+    :param env: the environment to wrap
+    """
+
+    def __init__(self, env: VecEnv) -> None:
+        super().__init__(env)
+
+    def step(self, action: int) -> Tuple[np.ndarray, float, bool, dict]:
+        return self.venv.step([action])
+
+    def step_wait(self) -> VecEnvStepReturn:
+        return self.venv.step_wait()
+
+    def reset(self) -> VecEnvObs:
+        return self.venv.reset()
+
+
+make_env = lambda: VecActionWrapper(
+    VecFrameStack(make_atari_env("PongNoFrameskip-v4"), 4)
 )
-env = make_env()
 
 
 def Q_builder(path: str) -> Callable[[np.ndarray], List[float]]:
@@ -20,8 +46,8 @@ def Q_builder(path: str) -> Callable[[np.ndarray], List[float]]:
 
     def f(observation: np.ndarray) -> List[float]:
         observation = (
-            torch.tensor(observation, device=model.device).squeeze_(0).swapdims_(0, 2)
-        )
+            torch.tensor(observation, device=model.device)[0].swapdims_(0, 2)
+        ).unsqueeze_(0)
         with torch.no_grad():
             q_values = model.q_net(observation)[0]
         return [x.item() for x in q_values]
