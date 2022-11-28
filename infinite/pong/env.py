@@ -42,17 +42,18 @@ make_env = lambda: VecActionWrapper(
 )
 
 
-def Q_builder(path: str) -> Callable[[np.ndarray], List[float]]:
+def Q_builder(path: str) -> Callable[[np.ndarray], np.ndarray]:
     model = DQN("CnnPolicy", make_env(), buffer_size=0)
     model = model.load(path)
 
-    def f(observation: np.ndarray) -> List[float]:
+    def f(observation: np.ndarray) -> np.ndarray:
         observation = (
             torch.tensor(observation, device=model.device).swapdims(1, 3).swapdims(2, 3)
         )
+
         with torch.no_grad():
             q_values = model.q_net(observation)[0]
-        return [x.item() for x in q_values]
+        return q_values.numpy()
 
     return f
 

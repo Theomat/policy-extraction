@@ -41,11 +41,17 @@ def Q_builder(path: str) -> Callable[[np.ndarray], List[float]]:
     model = model.load(path)
 
     def f(observation: np.ndarray) -> List[float]:
-        observation = torch.tensor(observation, device=model.device).unsqueeze_(0)
+        observation = torch.tensor(observation, device=model.device)
+        batched = len(observation.shape) == 2
+        if not batched:
+            observation.unsqueeze_(0)
         # print(observation)
         # assert False
         with torch.no_grad():
-            q_values = model.q_net(observation)[0]
-        return [x.item() for x in q_values]
+            q_values = model.q_net(observation).cpu().numpy()
+        if batched:
+            return q_values
+        else:
+            return q_values[0]
 
     return f
