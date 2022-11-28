@@ -58,7 +58,7 @@ def Q_builder(path: str) -> Callable[[np.ndarray], List[float]]:
 predicates = [
     Predicate(
         "my paddle y < ball y",
-        lambda obs: get_paddle_y(MY_PADDLE, obs[0]) < get_ball(obs[0])[1],
+        lambda obs: get_paddle_y(MY_PADDLE, obs[0]) < get_ball_pos(obs[0])[1],
     ),
 ]
 
