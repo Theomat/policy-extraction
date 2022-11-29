@@ -5,10 +5,13 @@ from typing import Any, Callable, List, Tuple, Union
 from rich import print
 from rich.text import Text
 
+import numpy as np
+
 from polext.decision_tree import DecisionTree
+from polext.finite import FINITE_METHODS
 from polext.forest import Forest, majority_vote
-from polext.predicate_space import PredicateSpace, enumerated_space, sampled_space
-from polext.interaction_helper import eval_policy, eval_q
+from polext.predicate_space import PredicateSpace, enumerated_space
+from polext.interaction_helper import eval_policy, vec_interact
 
 
 REWARD_STYLE = "gold1"
@@ -90,6 +93,12 @@ if __name__ == "__main__":
         default=127,
         help="seed used when RNG is used",
     )
+    parser.add_argument(
+        "-n",
+        type=int,
+        default=32,
+        help="number of envs to run simultaneously (i.e. batch size)",
+    )
 
     group = parser.add_argument_group(
         "State space", "parameters that change the state space"
@@ -133,6 +142,7 @@ if __name__ == "__main__":
     finite: bool = parameters.finite
     max_depth: int = parameters.depth
     ntrees: int = parameters.forest
+    nenvs: int = parameters.n
 
     # Parameters check
     if episodes < 1:
@@ -159,15 +169,9 @@ if __name__ == "__main__":
     module = importlib.import_module(script_path.replace(".py", "").replace("/", "."))
     predicates = module.__getattribute__("predicates")
     Q_builder = module.__getattribute__("Q_builder")
-    Q = Q_builder(model_path)
-    # Empirical evaluation of Q-values
-    env = module.__getattribute__("make_env")()
-    mean, diff = eval_q(Q, episodes, env)
-    print("Baseline Q-table:")
-    print_reward(episodes, mean, diff)
-    print()
+    env_fn = module.__getattribute__("make_env")
 
-    from polext.finite import FINITE_METHODS
+    Q = Q_builder(model_path)
 
     # Find out methods to run
     methods_todo = []
@@ -195,11 +199,33 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Setup predicate space
+    should_sample_space = True
     if finite:
         states = module.__getattribute__("states")
         space = enumerated_space(states, Q, predicates, predicate_space)
+        should_sample_space = False
     else:
-        space = sampled_space(env, episodes, Q, predicates, predicate_space)
+        space = PredicateSpace(predicates, True)
+    # Empirical evaluation of Q-values
+    def my_step(
+        val: float,
+        nep: int,
+        state: np.ndarray,
+        Qvalues: np.ndarray,
+        r: float,
+        stp1: np.ndarray,
+        done: bool,
+    ) -> float:
+        if should_sample_space:
+            space.visit_state(state, Qvalues)
+        return val + r
+
+    rewards = vec_interact(Q, episodes, env_fn, nenvs, my_step, 0, seed)
+    env = env_fn()
+
+    print("Baseline Q-table:")
+    print_reward(episodes, np.mean(rewards), 2 * np.std(rewards))
+    print()
 
     # Setup eval function and building function
     from polext.finite import build_forest, tree_loss, forest_loss

@@ -26,14 +26,14 @@ class PredicateSpace(Generic[S]):
         self.nactions = -1
         self._total_visits = 0
 
-    def _add_stats_for_representative_(self, state: S, Q_values: List[float]):
+    def _add_stats_for_representative_(self, state: S, Q_values: np.ndarray):
         self._total_visits += 1
         if state in self.counts:
             self._add_stats_(state, Q_values)
         else:
             # Add new state
             self.counts[state] = 1
-            self.Qtable[state] = np.array(Q_values)
+            self.Qtable[state] = np.asarray(Q_values)
             if not self.use_representatives:
                 for p in self.predicates:
                     if p(state):
@@ -55,13 +55,13 @@ class PredicateSpace(Generic[S]):
         state = __make_hashable__(state)
         return self.counts.get(state, 0) / max(1, self._total_visits)
 
-    def _add_stats_(self, state: S, Q_values: List[float]):
+    def _add_stats_(self, state: S, Q_values: np.ndarray):
         self.counts[state] += 1
         self.Qtable[state] += Q_values
 
-    def visit_state(self, state: S, Q_values: List[float]):
+    def visit_state(self, state: S, Q_values: np.ndarray):
         if self.nactions < 0:
-            self.nactions = len(Q_values)
+            self.nactions = Q_values.shape[0]
         if self.use_representatives:
             state = self.get_representative(state)
         self._add_stats_for_representative_(state, Q_values)
@@ -147,31 +147,11 @@ class PredicateSpace(Generic[S]):
 
 def enumerated_space(
     states: List[S],
-    Q: Callable[[S], List[float]],
+    Q: Callable[[S], np.ndarray],
     predicates: List[Predicate[S]],
     use_representatives: bool = False,
 ) -> PredicateSpace[S]:
     space = PredicateSpace(predicates, use_representatives)
     for s in states:
         space.visit_state(s, Q(s))
-    return space
-
-
-def sampled_space(
-    env,
-    episodes: int,
-    Q: Callable[[S], List[float]],
-    predicates: List[Predicate[S]],
-    use_representatives: bool = False,
-) -> PredicateSpace[S]:
-    space = PredicateSpace(predicates, use_representatives)
-    for _ in range(episodes):
-        state = env.reset()
-        done = False
-        while not done:
-            Qvalues = Q(state)
-            space.visit_state(state, Qvalues)
-            action = np.argmax(Qvalues)
-            state, _, done, _ = env.step(action)
-
     return space

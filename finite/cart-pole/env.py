@@ -21,11 +21,13 @@ class DiscreteWrapper(gym.ObservationWrapper):
         self.observation_space = MultiDiscrete([bins, bins, bins, bins])
 
     def observation(self, obs):
-        return (
-            np.digitize(obs[3], angle_velocity_state_array),
-            np.digitize(obs[2], angle_state_array),
-            np.digitize(obs[1], velocity_state_array),
-            np.digitize(obs[0], position_state_array),
+        return np.asarray(
+            [
+                np.digitize(obs[3], angle_velocity_state_array),
+                np.digitize(obs[2], angle_state_array),
+                np.digitize(obs[1], velocity_state_array),
+                np.digitize(obs[0], position_state_array),
+            ]
         )
 
 
@@ -33,7 +35,7 @@ make_env = lambda: DiscreteWrapper(gym.make("CartPole-v1"))
 env = make_env()
 
 states = [
-    (i, j, k, l)
+    np.asarray((i, j, k, l))
     for l in range(bins)
     for k in range(bins)
     for i in range(bins)
@@ -59,14 +61,18 @@ for i, array, name in [
         predicates.append(Predicate(f"{name} >= {el:.2e}", pred(i, j)))
 
 
-def Q_builder(path: str) -> Callable[[Tuple[int, int, int, int]], List[float]]:
+def Q_builder(path: str) -> Callable[[np.ndarray], np.ndarray]:
     model = DQN("MlpPolicy", make_env()).load(path)
 
-    def f(state: Tuple[int, int, int, int]) -> List[float]:
+    def f(state: np.ndarray) -> np.ndarray:
+        batched = len(state.shape) == 2
         observation = np.array(state).reshape((-1,) + model.observation_space.shape)
         observation = torch.tensor(observation, device=model.device)
         with torch.no_grad():
-            q_values = model.q_net(observation)[0]
-        return [x.item() for x in q_values]
+            q_values = model.q_net(observation).cpu().numpy()
+        if batched:
+            return q_values
+        else:
+            return q_values[0]
 
     return f
