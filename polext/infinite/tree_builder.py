@@ -4,13 +4,10 @@ import copy
 import numpy as np
 
 from polext.decision_tree import DecisionTree
-from polext.finite.tree_builder import (
-    build_tree as fbuild_tree,
-    build_forest as fbuild_forest,
-)
+from polext.finite.tree_builder import build_tree as fbuild_tree
 from polext.forest import Forest, majority_vote
 from polext.predicate_space import PredicateSpace
-from polext.interaction_helper import interact, eval_policy
+from polext.interaction_helper import policy_to_q_function, vec_interact, vec_eval_policy
 
 
 S = TypeVar("S")
@@ -21,27 +18,28 @@ def build_tree(
     max_depth: int,
     method: str,
     Qfun: Callable[[S], List[float]],
-    env: Any,
+    env_fn: Callable,
+    nenvs: int,
     iterations: int = 0,
     episodes: int = 0,
+    seed: Optional[int] = None,
     **kwargs
 ) -> Tuple[DecisionTree[S], Tuple[float, float]]:
     tree, _ = fbuild_tree(space, max_depth, method, **kwargs)
     if iterations <= 1:
-        return tree, eval_policy(tree, episodes, env)
+        return tree, vec_eval_policy(
+            tree, episodes, env_fn, nenvs, space.nactions, seed
+        )
     new_space = copy.deepcopy(space)
     new_space.reset_count()
 
     def our_step(
-        rew: List[float], ep: int, st: S, r: float, stp1: S, done: bool
-    ) -> List[float]:
-        rew[-1] += r
-        new_space.visit_state(st, Qfun(st))
-        if done:
-            rew.append(0)
-        return rew
+        rew: float, ep: int, st: S, Qval: np.ndarray, r: float, stp1: S, done: bool
+    ) -> float:
+        new_space.visit_state(st, Qval)
+        return rew + r
 
-    total_rewards = interact(tree, episodes, env, our_step, [0.0])
+    total_rewards = vec_interact(policy_to_q_function(tree, nenvs, space.nactions), episodes, env_fn, nenvs, our_step, 0.0)
     mu, std = np.mean(total_rewards), 2 * np.std(total_rewards)
 
     next_tree, (nmu, nstd) = build_tree(
@@ -50,7 +48,9 @@ def build_tree(
         method,
         Qfun=Qfun,
         iterations=iterations - 1,
-        env=env,
+        env_fn=env_fn,
+        nenvs=nenvs,
+        seed=seed,
         episodes=episodes,
         **kwargs
     )
