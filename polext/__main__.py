@@ -11,7 +11,7 @@ from polext.decision_tree import DecisionTree
 from polext.finite import FINITE_METHODS
 from polext.forest import Forest, majority_vote
 from polext.predicate_space import PredicateSpace, enumerated_space
-from polext.interaction_helper import eval_policy, vec_interact
+from polext.interaction_helper import vec_eval_policy, vec_interact
 
 
 REWARD_STYLE = "gold1"
@@ -235,11 +235,13 @@ if __name__ == "__main__":
     else:
         from polext.finite import build_tree
 
-    eval_fn = eval_policy
+    eval_fn = vec_eval_policy
     loss = tree_loss
     base_builder = build_tree
     if ntrees > 1:
-        eval_fn = lambda f, *args: eval_policy(f.policy(majority_vote), *args)
+        eval_fn = lambda f, *args, **kwargs: vec_eval_policy(
+            f.policy(majority_vote), *args, **kwargs
+        )
         base_builder = lambda *args, **kwargs: build_forest(
             *args, trees=ntrees, **kwargs
         )
@@ -252,9 +254,9 @@ if __name__ == "__main__":
         out: Tuple[Union[DecisionTree, Forest], Any]
     ) -> Union[DecisionTree, Forest]:
         tree, score = out
-        if not is_infinite and finite:
+        if not is_infinite:
             print("Lost Q-Values:", Text.assemble((str(score), FINITE_LOSS_STYLE)))
-            score = eval_fn(tree, episodes, env)
+            score = eval_fn(tree, episodes, env_fn, nenvs, space.nactions, seed)
         else:
             print(
                 "Lost Q-Values:",
