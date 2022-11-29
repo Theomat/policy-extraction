@@ -67,6 +67,21 @@ def vec_eval_policy(
     ) -> float:
         return rew + r
 
+    total_rewards = vec_interact(
+        policy_to_q_function(policy, nactions, nenvs),
+        episodes,
+        env_fn,
+        nenvs,
+        our_step,
+        0.0,
+        seed=seed,
+    )
+    return np.mean(total_rewards), 2 * np.std(total_rewards)
+
+
+def policy_to_q_function(
+    policy: Callable[[np.ndarray], int], nactions: int, nenvs: int
+) -> Callable[[np.ndarray], np.ndarray]:
     def super_policy(states: np.ndarray) -> np.ndarray:
         actions = [policy(state) for state in states]
         return np.array(
@@ -76,10 +91,7 @@ def vec_eval_policy(
             ]
         )
 
-    total_rewards = vec_interact(
-        super_policy, episodes, env_fn, nenvs, our_step, 0.0, seed=seed
-    )
-    return np.mean(total_rewards), 2 * np.std(total_rewards)
+    return super_policy
 
 
 def eval_q(Q: Callable[[Any], List[float]], episodes: int, env) -> tuple[float, float]:
