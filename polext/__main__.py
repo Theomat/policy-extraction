@@ -240,7 +240,9 @@ if __name__ == "__main__":
     base_builder = build_tree
     if ntrees > 1:
         eval_fn = lambda f, *args: eval_policy(f.policy(majority_vote), *args)
-        base_builder = lambda *args, **kwargs: build_forest(*args, trees=ntrees, **kwargs)
+        base_builder = lambda *args, **kwargs: build_forest(
+            *args, trees=ntrees, **kwargs
+        )
         loss = forest_loss
     builder = lambda *args, **kwargs: base_builder(
         *args, Qfun=Q, env=env, episodes=episodes, iterations=iterations, **kwargs
