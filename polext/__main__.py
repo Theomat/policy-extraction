@@ -221,7 +221,6 @@ if __name__ == "__main__":
         return val + r
 
     rewards = vec_interact(Q, episodes, env_fn, nenvs, my_step, 0, seed)
-    env = env_fn()
 
     print("Baseline Q-table:")
     print_reward(episodes, np.mean(rewards), 2 * np.std(rewards))
@@ -247,7 +246,13 @@ if __name__ == "__main__":
         )
         loss = forest_loss
     builder = lambda *args, **kwargs: base_builder(
-        *args, Qfun=Q, env=env, episodes=episodes, iterations=iterations, **kwargs
+        *args,
+        Qfun=Q,
+        env_fn=env_fn,
+        nenvs=nenvs,
+        episodes=episodes,
+        iterations=iterations,
+        **kwargs,
     )
 
     def callback(
