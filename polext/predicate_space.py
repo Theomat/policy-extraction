@@ -25,6 +25,7 @@ class PredicateSpace(Generic[S]):
         self.predicates_set = {p: set() for p in self.predicates}
         self.nactions = -1
         self._total_visits = 0
+        self.learnt_Q = {}
 
     def _add_stats_for_representative_(self, state: S, Q_values: np.ndarray):
         self._total_visits += 1
@@ -70,6 +71,7 @@ class PredicateSpace(Generic[S]):
         self.Qtable = {s: Q * 0 for s, Q in self.Qtable.items()}
         self._total_visits = 0
         self.counts = {s: 0 for s in self.counts.keys()}
+        self.learnt_Q = {}
 
     def children(
         self, predicate: Predicate[S]
@@ -110,6 +112,29 @@ class PredicateSpace(Generic[S]):
         left._total_visits = sum(self.counts[s] for s in selected_states)
         right._total_visits = self._total_visits - left._total_visits
         return left, right
+
+    def learn_qvalues(
+        self,
+        state: S,
+        action: int,
+        r: float,
+        next_state: S,
+        done: bool,
+        alpha: float = 0.01,
+        gamma: float = 0.99,
+    ):
+        s = self.get_representative(state)
+        if not done:
+            stp1 = self.get_representative(next_state)
+            nQ = self.learnt_Q.get(stp1, None)
+            nval = np.max(nQ) if nQ else 0
+        else:
+            nval = 0
+        if s not in self.learnt_Q:
+            self.learnt_Q[s] = [0 for _ in range(self.nactions)]
+        self.learnt_Q[s][action] += alpha * (
+            r + gamma * nval - self.learnt_Q[s][action]
+        )
 
     @property
     def states(self) -> Set[S]:
