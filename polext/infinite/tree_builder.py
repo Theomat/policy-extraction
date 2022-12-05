@@ -1,4 +1,4 @@
-from typing import Any, Callable, List, Optional, Tuple, TypeVar
+from typing import Callable, List, Optional, Tuple, TypeVar
 import copy
 
 import numpy as np
@@ -17,7 +17,7 @@ def build_tree(
     space: PredicateSpace[S],
     max_depth: int,
     method: str,
-    Qfun: Callable[[S], List[float]],
+    Qfun: Callable[[S], np.ndarray],
     env_fn: Callable,
     nenvs: int,
     iterations: int = 0,
@@ -36,7 +36,8 @@ def build_tree(
     def our_step(
         rew: float, ep: int, st: S, Qval: np.ndarray, r: float, stp1: S, done: bool
     ) -> float:
-        new_space.visit_state(st, Qval)
+        new_space.visit_state(st, Qfun(st))
+        # new_space.learn_qvalues(st, Qval, r, stp1, done)
         return rew + r
 
     total_rewards = vec_interact(policy_to_q_function(tree, nenvs, space.nactions), episodes, env_fn, nenvs, our_step, 0.0)
