@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, Tuple, TypeVar
+from typing import Any, Callable, Optional, Tuple, TypeVar
 import copy
 
 import numpy as np
@@ -45,7 +45,7 @@ def build_tree(
         return rew + r
 
     total_rewards = vec_interact(
-        policy_to_q_function(tree, nenvs, space.nactions),
+        policy_to_q_function(tree, space.nactions, nenvs),
         episodes,
         env_fn,
         nenvs,
