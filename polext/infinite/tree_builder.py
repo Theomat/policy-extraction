@@ -7,7 +7,11 @@ from polext.decision_tree import DecisionTree
 from polext.finite.tree_builder import build_tree as fbuild_tree
 from polext.forest import Forest, majority_vote
 from polext.predicate_space import PredicateSpace
-from polext.interaction_helper import policy_to_q_function, vec_interact, vec_eval_policy
+from polext.interaction_helper import (
+    policy_to_q_function,
+    vec_interact,
+    vec_eval_policy,
+)
 
 
 S = TypeVar("S")
@@ -37,10 +41,17 @@ def build_tree(
         rew: float, ep: int, st: S, Qval: np.ndarray, r: float, stp1: S, done: bool
     ) -> float:
         new_space.visit_state(st, Qfun(st))
-        # new_space.learn_qvalues(st, Qval, r, stp1, done)
+        # new_space.learn_qvalues(st, np.argmax(Qval), r, stp1, done)
         return rew + r
 
-    total_rewards = vec_interact(policy_to_q_function(tree, nenvs, space.nactions), episodes, env_fn, nenvs, our_step, 0.0)
+    total_rewards = vec_interact(
+        policy_to_q_function(tree, nenvs, space.nactions),
+        episodes,
+        env_fn,
+        nenvs,
+        our_step,
+        0.0,
+    )
     mu, std = np.mean(total_rewards), 2 * np.std(total_rewards)
 
     next_tree, (nmu, nstd) = build_tree(
