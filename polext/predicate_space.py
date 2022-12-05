@@ -1,5 +1,4 @@
 from typing import Callable, Generator, Generic, Iterable, List, Set, Tuple, TypeVar
-from functools import lru_cache
 
 import numpy as np
 
@@ -41,7 +40,6 @@ class PredicateSpace(Generic[S]):
                     if p(state):
                         self.predicates_set[p].add(state)
 
-    @lru_cache(maxsize=10)
     def get_representative(self, state: S) -> S:
         repres = tuple(p for p in self.predicates if p(state))
         if repres in self.representatives:
