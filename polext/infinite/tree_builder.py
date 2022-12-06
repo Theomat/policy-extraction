@@ -4,7 +4,10 @@ import copy
 import numpy as np
 
 from polext.decision_tree import DecisionTree
-from polext.finite.tree_builder import build_tree as fbuild_tree
+from polext.finite.tree_builder import (
+    build_tree as fbuild_tree,
+    build_forest as fbuild_forest,
+)
 from polext.forest import Forest, majority_vote
 from polext.predicate_space import PredicateSpace
 from polext.interaction_helper import (
@@ -15,9 +18,11 @@ from polext.interaction_helper import (
 
 
 S = TypeVar("S")
+V = TypeVar("V")
 
 
-def build_tree(
+def __iterate__(
+    builder: Callable[[PredicateSpace[S], int, str], Tuple[V, Any]],
     space: PredicateSpace[S],
     max_depth: int,
     method: str,
@@ -28,8 +33,8 @@ def build_tree(
     episodes: int = 0,
     seed: Optional[int] = None,
     **kwargs
-) -> Tuple[DecisionTree[S], Tuple[float, float]]:
-    tree, _ = fbuild_tree(space, max_depth, method, **kwargs)
+) -> Tuple[V, Tuple[float, float]]:
+    tree, _ = builder(space, max_depth, method, seed=seed, **kwargs)
     if iterations <= 1:
         return tree, vec_eval_policy(
             tree, episodes, env_fn, nenvs, space.nactions, seed
@@ -54,7 +59,8 @@ def build_tree(
     )
     mu, std = np.mean(total_rewards), 2 * np.std(total_rewards)
 
-    next_tree, (nmu, nstd) = build_tree(
+    next_tree, (nmu, nstd) = __iterate__(
+        builder,
         new_space,
         max_depth,
         method,
@@ -72,28 +78,56 @@ def build_tree(
     return tree, (mu, std)
 
 
+def build_tree(
+    space: PredicateSpace[S],
+    max_depth: int,
+    method: str,
+    Qfun: Callable[[S], np.ndarray],
+    env_fn: Callable,
+    nenvs: int,
+    iterations: int = 0,
+    episodes: int = 0,
+    seed: Optional[int] = None,
+    **kwargs
+) -> Tuple[DecisionTree[S], Tuple[float, float]]:
+    return __iterate__(
+        fbuild_tree,
+        space,
+        max_depth,
+        method,
+        Qfun,
+        env_fn,
+        nenvs,
+        iterations,
+        episodes,
+        seed,
+        **kwargs
+    )
+
+
 def build_forest(
     space: PredicateSpace[S],
     max_depth: int,
     method: str,
     trees: int,
-    seed: int,
+    Qfun: Callable[[S], np.ndarray],
+    env_fn: Callable,
+    nenvs: int,
     iterations: int = 0,
-    env: Optional[Any] = None,
+    episodes: int = 0,
+    seed: Optional[int] = None,
     **kwargs
-) -> Tuple[Forest[S], float]:
-    gen = space.random_splits(seed)
-    our_trees = [
-        build_tree(
-            next(gen),
-            max_depth=max_depth,
-            method=method,
-            seed=seed + i,
-            iterations=iterations,
-            env=env,
-            **kwargs
-        )[0]
-        for i in range(trees)
-    ]
-    forest = Forest(our_trees)
-    return forest, forest_loss(forest, space)
+) -> Tuple[Forest[S], Tuple[float, float]]:
+    return __iterate__(
+        fbuild_forest,
+        space,
+        max_depth,
+        method,
+        Qfun,
+        env_fn,
+        nenvs,
+        iterations,
+        episodes,
+        seed,
+        **kwargs
+    )
