@@ -30,3 +30,16 @@ def majority_vote(votes: Dict[int, int]) -> int:
             max_votes = vote
             maxi = action
     return maxi
+
+
+def vote_uncertainty(votes: Dict[int, int], choice: int) -> float:
+    """
+    Return the ratio of votes who did not vote for the choice
+    """
+    total = 0
+    disagree = 0
+    for action, vote in votes.items():
+        total += vote
+        if action != choice:
+            disagree += vote
+    return disagree / total
