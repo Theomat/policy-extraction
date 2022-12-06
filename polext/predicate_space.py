@@ -131,10 +131,20 @@ class PredicateSpace(Generic[S]):
         else:
             nval = 0
         if s not in self.learnt_Q:
-            self.learnt_Q[s] = [0 for _ in range(self.nactions)]
+            self.learnt_Q[s] = np.array([0 for _ in range(self.nactions)])
         self.learnt_Q[s][action] += alpha * (
             r + gamma * nval - self.learnt_Q[s][action]
         )
+
+    def mix_learnt(self, current: float, learnt: float):
+        """
+        Qvals = current * Qval_visit + learnt * Qval_learnt
+        """
+        for state, Qvals in self.Qtable.items():
+            Qvals /= self.counts[state]
+            Qvals *= current
+            if state in self.learnt_Q:
+                Qvals += learnt * self.learnt_Q[state]
 
     @property
     def states(self) -> Set[S]:
