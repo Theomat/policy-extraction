@@ -73,6 +73,12 @@ class PredicateSpace(Generic[S]):
         self.counts = {s: 0 for s in self.counts.keys()}
         self.learnt_Q = {}
 
+    def predicate_state_Q(self, pred_state: Tuple[Predicate[S], ...]) -> np.ndarray:
+        return self.Qtable[self.representatives[pred_state]]
+
+    def predicates_states(self) -> Set[Tuple[Predicate[S], ...]]:
+        return set(self.representatives.keys())
+
     def children(
         self, predicate: Predicate[S]
     ) -> "Tuple[PredicateSpace[S], PredicateSpace[S]]":
