@@ -9,7 +9,7 @@ import numpy as np
 
 from polext.decision_tree import DecisionTree
 from polext.finite import FINITE_METHODS
-from polext.forest import Forest, majority_vote
+from polext.forest import Forest
 from polext.predicate_space import PredicateSpace, enumerated_space
 from polext.interaction_helper import vec_eval_policy, vec_interact
 
@@ -238,9 +238,6 @@ if __name__ == "__main__":
     loss = tree_loss
     base_builder = build_tree
     if ntrees > 1:
-        eval_fn = lambda f, *args, **kwargs: vec_eval_policy(
-            f.policy(majority_vote), *args, **kwargs
-        )
         base_builder = lambda *args, **kwargs: build_forest(
             *args, trees=ntrees, **kwargs
         )
