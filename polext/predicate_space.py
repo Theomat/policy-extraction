@@ -115,7 +115,7 @@ class PredicateSpace(Generic[S]):
                 new_repres = tuple(p for p in repres if p != predicate)
                 target.representatives[new_repres] = s
         # Update visits
-        left._total_visits = sum(self.counts[s] for s in selected_states)
+        left._total_visits = sum(c for c in left.counts.values())
         right._total_visits = self._total_visits - left._total_visits
         return left, right
 
