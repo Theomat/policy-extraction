@@ -25,7 +25,7 @@ The model file that will be used in the next step can be found at ``logs/dqn/<en
 This will evaluate each tree built on 100 episodes and this will build a tree for every method available for the finite state space case:
 
 ```
-python -m polext finite/mountain-car/env.py my_model.pt all 100 --finite
+python -m polext finite/mountain-car/env.py logs/dqn/MountainCar-v0_1/best_model.zip all 100 --finite --depth 7
 ```
 
 You can also change the maximum allowed depth with ``--depth new_max``.

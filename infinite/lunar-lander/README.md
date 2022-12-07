@@ -25,7 +25,7 @@ The model file that will be used in the next step can be found at ``logs/dqn/<en
 This will evaluate each tree built on 100 episodes and this will build a tree for every method available for the infinite state space case:
 
 ```
-python -m polext infinite/lunar-lander/env.py my_model.pt all 100
+python -m polext infinite/lunar-lander/env.py logs/dqn/LunarLander-v2_1/best_model.zip all 100 --depth 12 --iterations 2
 ```
 
 You can also change the maximum allowed depth with ``--depth new_max``.

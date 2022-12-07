@@ -25,7 +25,7 @@ The model file that will be used in the next step can be found at ``logs/dqn/<en
 This will evaluate each tree built on 200 episodes and this will build a tree for every method available for the infinite state space case:
 
 ```
-python -m polext infinite/pong/env.py my_model.pt all 200
+python -m polext infinite/pong/env.py logs/dqn/PongNoFrameskip-v4_1/best_model.zip all 100 --depth 10 --iterations 2
 ```
 
 You can also change the maximum allowed depth with ``--depth new_max``.
