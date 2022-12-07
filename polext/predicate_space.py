@@ -147,6 +147,8 @@ class PredicateSpace(Generic[S]):
         Qvals = current * Qval_visit + learnt * Qval_learnt
         """
         for state, Qvals in self.Qtable.items():
+            if self.counts[state] == 0:
+                continue
             Qvals /= self.counts[state]
             Qvals *= current
             if state in self.learnt_Q:
