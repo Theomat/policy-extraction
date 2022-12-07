@@ -133,7 +133,7 @@ class PredicateSpace(Generic[S]):
         if not done:
             stp1 = self.get_representative(next_state)
             nQ = self.learnt_Q.get(stp1, None)
-            nval = np.max(nQ) if nQ else 0
+            nval = np.max(nQ) if nQ is not None else 0
         else:
             nval = 0
         if s not in self.learnt_Q:
