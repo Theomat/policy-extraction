@@ -31,6 +31,13 @@ if __name__ == "__main__":
         help="path to python script that defines the environment and the predicates",
     )
     parser.add_argument(
+        "-f",
+        "--folder",
+        type=str,
+        default="logs",
+        help="logs folder from rl_zoo (default: logs)",
+    )
+    parser.add_argument(
         "-o",
         "--output",
         type=str,
@@ -40,11 +47,12 @@ if __name__ == "__main__":
 
     parameters = parser.parse_args()
     script_path: str = parameters.script_path
+    folder: str = parameters.folder
     output: str = parameters.output
 
     # Find existing config folder
     env_name = script_path.split("/")[-2]
-    trained_dir = "./logs/dqn/"
+    trained_dir = os.path.join(".", folder, "dqn")
     env_dir = None
 
     for file in os.listdir(trained_dir):
@@ -137,6 +145,6 @@ if __name__ == "__main__":
         n_eval_episodes=args["eval_episodes"],
         eval_freq=args["eval_freq"],
         log_interval=args["log_interval"],
-        eval_log_path=os.path.join(args["log_folder"], "discrete"),
+        eval_log_path=os.path.join(os.path.split(env_dir)[0], "discrete"),
     )
     model.save(output)
