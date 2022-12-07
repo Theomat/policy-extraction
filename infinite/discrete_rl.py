@@ -1,7 +1,7 @@
 import importlib
 import os
 import sys
-from typing import Tuple
+from typing import Optional, Tuple
 from collections import OrderedDict
 
 import yaml
@@ -44,11 +44,18 @@ if __name__ == "__main__":
         default="discrete_model.zip",
         help="destination model file (default: discrete_model.zip)",
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="seed used when RNG is used",
+    )
 
     parameters = parser.parse_args()
     script_path: str = parameters.script_path
     folder: str = parameters.folder
     output: str = parameters.output
+    seed: Optional[int] = parameters.seed
 
     # Find existing config folder
     env_name = script_path.split("/")[-2]
@@ -137,6 +144,9 @@ if __name__ == "__main__":
     config["policy_kwargs"] = eval(config["policy_kwargs"])
     for elem in ["seed", "verbose", "device"]:
         config[elem] = args[elem]
+
+    if seed is not None:
+        config["seed"] = seed
 
     model = DQN("MlpPolicy", train_env, **config)
     model.learn(
