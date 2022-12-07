@@ -46,7 +46,7 @@ def __iterate__(
         rew: float, ep: int, st: S, Qval: np.ndarray, r: float, stp1: S, done: bool
     ) -> float:
         new_space.visit_state(st, Qfun(st))
-        # new_space.learn_qvalues(st, np.argmax(Qval), r, stp1, done)
+        new_space.learn_qvalues(st, np.argmax(Qval), r, stp1, done)
         return rew + r
 
     total_rewards = vec_interact(
@@ -58,7 +58,7 @@ def __iterate__(
         0.0,
     )
     mu, std = np.mean(total_rewards), 2 * np.std(total_rewards)
-
+    new_space.mix_learnt(0.5, 0.5)
     next_tree, (nmu, nstd) = __iterate__(
         builder,
         new_space,
