@@ -129,5 +129,6 @@ def build_forest(
         iterations,
         episodes,
         seed,
+        trees=trees,
         **kwargs
     )
