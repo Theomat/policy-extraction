@@ -9,6 +9,13 @@ import tqdm
 envs = ["acrobot", "cart-pole", "pong", "lunar-lander", "mountain-car"]
 
 
+def extract_score(line: str) -> float:
+    assert "mean=" in line, f"Not right format:'{line}'"
+    i = line.index("mean=") + len("mean=")
+    line = line[i:]
+    return float(line[: line.find(")")])
+
+
 def exec_cmd(command_line: List[str]) -> str:
     try:
         return subprocess.check_output(command_line, text=True)
@@ -42,8 +49,12 @@ def eval_discrete_dqn(env_path: str, seed: int, episodes: int, nenvs: int) -> di
         " "
     )
     output = exec_cmd(cmd)
-    # TODO: extract output
-    return {f"discrete-dqn": {f"{seed}": 0}}
+    score_line = ""
+    for line in output.splitlines():
+        if "mean=" in line:
+            score_line = line
+            break
+    return {f"discrete-dqn": {f"{seed}": extract_score(score_line)}}
 
 
 def run_trees(
