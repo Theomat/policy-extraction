@@ -7,7 +7,7 @@ benchmark.html
 decision_trees
 
 # Model trained with RL ZOO
-logs
+logs*
 
 # Videos files
 *.json
