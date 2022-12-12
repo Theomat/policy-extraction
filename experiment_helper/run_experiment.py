@@ -22,9 +22,10 @@ def train_base_dqn(env_id: str, seed: int) -> None:
 
 
 def train_discrete_dqn(env_path: str, seed: int) -> None:
-    if os.path.exists(f"./{seed}_{env_path.split()[-2]}_discrete_rl.zip"):
+    file = f"./{seed}_{os.path.split(env_path)[-2]}_discrete_rl.zip"
+    if os.path.exists(file):
         return
-    cmd = f"python infinite/train_discrete_rl.py {env_path} -f logs_{seed}/ --seed {seed} -o ./{seed}_{env_path.split()[-2]}_discrete_rl.zip".split(
+    cmd = f"python infinite/train_discrete_rl.py {env_path} -f logs_{seed}/ --seed {seed} -o {file}".split(
         " "
     )
     exec_cmd(cmd)
@@ -171,7 +172,7 @@ if __name__ == "__main__":
         with open(output) as fd:
             all_data = json.load(fd)
     # Capture data
-    pbar = tqdm.trange(seeds, desc="seeds")
+    pbar = tqdm.trange(seeds, unit="seed")
     for i in pbar:
         seed = 2410 * i + 17 * i + i
         # If already done => skip it
