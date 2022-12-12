@@ -63,7 +63,10 @@ if __name__ == "__main__":
     env_dir = None
 
     for file in os.listdir(trained_dir):
-        if os.path.isdir(os.path.join(trained_dir, file)) and env_name in file.lower():
+        if (
+            os.path.isdir(os.path.join(trained_dir, file))
+            and env_name.replace("-", "") in file.lower()
+        ):
             env_dir = os.path.join(trained_dir, file, file[: file.rfind("_")])
             break
     if env_dir is None:
