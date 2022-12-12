@@ -160,8 +160,8 @@ if __name__ == "__main__":
         "-o",
         "--output",
         type=str,
-        default="model.csv",
-        help="destination CSV file",
+        default="results.json",
+        help="destination JSON file",
     )
     parser.add_argument(
         "-d",
