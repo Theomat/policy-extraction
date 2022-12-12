@@ -212,7 +212,7 @@ if __name__ == "__main__":
         episodes,
         lambda: EquivWrapper(env_fn()),
         nenvs,
-        lambda b, _, __, r, *args: b + r,
+        lambda b, _, __, ___, r, *args: b + r,
         0,
         seed,
     )
