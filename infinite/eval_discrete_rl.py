@@ -208,6 +208,12 @@ if __name__ == "__main__":
             return q_values[0]
 
     total_rewards = vec_interact(
-        qfun, episodes, env_fn, nenvs, lambda b, _, __, r, *args: b + r, 0, seed
+        qfun,
+        episodes,
+        lambda: EquivWrapper(env_fn()),
+        nenvs,
+        lambda b, _, __, r, *args: b + r,
+        0,
+        seed,
     )
     print_reward(episodes, np.mean(total_rewards), 2 * np.std(total_rewards))
