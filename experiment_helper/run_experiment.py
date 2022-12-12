@@ -72,8 +72,16 @@ def run_trees(
         " "
     )
     output = exec_cmd(cmd)
-    # TODO: extract output
-    data = {f"method-d={depth}-it={iterations}": {f"{seed}": 0}}
+    method = "dqn"
+    data = {}
+    for line in output.splitlines():
+        if line.startswith("Method:"):
+            method = line[len("Method:") :]
+        elif "mean=" in line:
+            data[f"{method}-d={depth}-it={iterations}"] = {
+                f"{seed}": extract_score(line)
+            }
+    return data
 
 
 def find_env_path(env_name: str) -> str:
