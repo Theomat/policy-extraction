@@ -1,8 +1,9 @@
 import os
 import subprocess
 from typing import List
-
 import json
+
+import tqdm
 
 envs = ["acrobot", "cart-pole", "pong", "lunar-lander", "mountain-car"]
 
@@ -170,19 +171,24 @@ if __name__ == "__main__":
         with open(output) as fd:
             all_data = json.load(fd)
     # Capture data
-    for i in range(seeds):
+    pbar = tqdm.trange(seeds, desc="seeds")
+    for i in pbar:
         seed = 2410 * i + 17 * i + i
         # If already done => skip it
         if all_data.get(seed, False):
             continue
         all_data[seed] = False
         # This part is recoverable from files
+        pbar.set_postfix_str("RL training")
         train_base_dqn(env_id, seed)
+        pbar.set_postfix_str("discrete RL training")
         train_discrete_dqn(env_path, seed)
+        pbar.set_postfix_str("discrete RL eval")
         score_dict = eval_discrete_dqn(env_path, seed, episodes, nenvs)
         union(all_data, score_dict)
         for depth in depths:
             for iteration in iterations:
+                pbar.set_postfix_str(f"Trees d={depth} it={iteration}")
                 score_dict = run_trees(
                     env_path, methods, seed, episodes, env_id, depth, iteration, nenvs
                 )
