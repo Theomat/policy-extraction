@@ -93,7 +93,9 @@ if __name__ == "__main__":
     with open(os.path.join(env_dir, "config.yml")) as fd:
         config = yaml.full_load(fd)
 
-    module = importlib.import_module(script_path.replace(".py", "").replace("/", "."))
+    module = importlib.import_module(
+        script_path.replace(".py", "").replace("./", "").replace("/", ".")
+    )
     predicates = module.__getattribute__("predicates")
     env_fn = module.__getattribute__("make_env")
 
