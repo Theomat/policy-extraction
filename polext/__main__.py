@@ -166,7 +166,9 @@ if __name__ == "__main__":
         )
         sys.exit(1)
     # Load module
-    module = importlib.import_module(script_path.replace(".py", "").replace("/", "."))
+    module = importlib.import_module(
+        script_path.replace(".py", "").replace("./", "").replace("/", ".")
+    )
     predicates = module.__getattribute__("predicates")
     Q_builder = module.__getattribute__("Q_builder")
     env_fn = module.__getattribute__("make_env")
