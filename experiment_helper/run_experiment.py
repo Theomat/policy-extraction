@@ -27,7 +27,7 @@ def train_base_dqn(env_id: str, seed: int) -> None:
 
 
 def train_discrete_dqn(env_path: str, seed: int) -> None:
-    file = f"./{seed}_{os.path.split(env_path)[-2]}_discrete_rl.zip"
+    file = f"{os.path.split(env_path)[-2]}_{seed}_discrete_rl.zip"
     if os.path.exists(file):
         return
     cmd = f"python infinite/train_discrete_rl.py {env_path} -f logs_{seed}/ --seed {seed} -o {file}".split(
@@ -37,7 +37,8 @@ def train_discrete_dqn(env_path: str, seed: int) -> None:
 
 
 def eval_discrete_dqn(env_path: str, seed: int, episodes: int, nenvs: int) -> dict:
-    cmd = f"python infinite/eval_discrete_rl.py {env_path} ./{seed}_{env_path.split()[-2]}_discrete_rl.zip {episodes} -n {nenvs} --seed {seed}".split(
+    file = f"{os.path.split(env_path)[-2]}_{seed}_discrete_rl.zip"
+    cmd = f"python infinite/eval_discrete_rl.py {env_path} {file} {episodes} -n {nenvs} --seed {seed} -f logs_{seed}/".split(
         " "
     )
     output = exec_cmd(cmd)
