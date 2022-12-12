@@ -2,6 +2,7 @@ import os
 import subprocess
 from typing import List
 import json
+import sys
 
 import tqdm
 
@@ -9,7 +10,11 @@ envs = ["acrobot", "cart-pole", "pong", "lunar-lander", "mountain-car"]
 
 
 def exec_cmd(command_line: List[str]) -> str:
-    return subprocess.check_output(command_line, text=True)
+    try:
+        return subprocess.check_output(command_line, text=True)
+    except:
+        print("Failed when executing:\n", " ".join(command_line), file=sys.stderr)
+        sys.exit(1)
 
 
 def train_base_dqn(env_id: str, seed: int) -> None:
