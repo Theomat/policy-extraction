@@ -30,8 +30,14 @@ dtcontrol --input my_dt_control_input.csv
 
 ## Comparison with RL on predicate space MDP
 
-You should run the following command:
+You should run the following command to train the model:
 
 ```bash
-python infinite/discrete_rl.py infinite/<env>/env.py
+python infinite/train_discrete_rl.py infinite/<env>/env.py -o discrete_model.zip
+```
+
+Then evaluate it using:
+
+```bash
+python infinite/eval_discrete_rl.py infinite/<env>/env.py discrete_model.zip
 ```
