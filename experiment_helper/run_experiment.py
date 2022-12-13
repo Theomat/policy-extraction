@@ -220,6 +220,9 @@ if __name__ == "__main__":
                 )
                 union(all_data, score_dict)
         all_data[seed] = True
+        # Save data periodically
+        with open(output, "w") as fd:
+            json.dump(all_data, fd)
     # Save data
     with open(output, "w") as fd:
         json.dump(all_data, fd)
