@@ -8,6 +8,7 @@ from polext.finite.greedy_builder import (
 )
 from polext.finite.max_probability_tree_builder import max_probability_tree_builder
 from polext.finite.optimistic_tree_builder import optimistic_tree_builder
+from polext.finite.entropy_tree_builder import entropy_tree_builder
 from polext.finite.simulated_annealing_tree_builder import (
     simulated_annealing_tree_builder,
 )
@@ -35,11 +36,12 @@ def forest_loss(forest: Forest[S], space: PredicateSpace[S]) -> float:
 _METHODS_ = {
     "greedy-q": greedy_tree_builder(greedy_q_selection, tree_loss),
     "greedy-nactions": greedy_tree_builder(greedy_opt_action_selection, tree_loss),
+    "entropy": entropy_tree_builder(tree_loss),
     "max-probability": max_probability_tree_builder(tree_loss),
     "optimistic": optimistic_tree_builder(tree_loss),
-    "simulated-annealing": simulated_annealing_tree_builder(
-        tree_loss, 0.5, 200, 100, 0.2, 100
-    ),
+    # "simulated-annealing": simulated_annealing_tree_builder(
+    # tree_loss, 0.5, 200, 100, 0.2, 100
+    # ),
 }
 
 
