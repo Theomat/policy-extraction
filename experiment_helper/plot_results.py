@@ -6,6 +6,10 @@ from rliable import plot_utils
 
 import matplotlib.pyplot as plt
 
+import pltpublish as pub
+
+pub.setup()
+
 import numpy as np
 
 
@@ -31,7 +35,7 @@ def easy_plot(scores_dict, filepath="test.png"):
         xlabel="Reward",
     )
     plt.tight_layout()
-    plt.savefig(filepath)
+    plt.savefig(filepath, dpi=500)
     plt.show()
 
 
@@ -146,9 +150,12 @@ if __name__ == "__main__":
     average_probabilities, average_prob_cis = rly.get_interval_estimates(
         compared_dict, metrics.probability_of_improvement, reps=1000
     )
-    plot_utils.plot_probability_of_improvement(average_probabilities, average_prob_cis)
-    plt.savefig(f"{filename}_perf_cmp_dqn.png")
+
+    plot_utils.plot_probability_of_improvement(
+        average_probabilities, average_prob_cis, figsize=(6, 4)
+    )
     plt.tight_layout()
+    plt.savefig(f"{filename}_perf_cmp_dqn.png", dpi=500)
     plt.show()
 
     compared_dict = {}
@@ -164,7 +171,9 @@ if __name__ == "__main__":
     average_probabilities, average_prob_cis = rly.get_interval_estimates(
         compared_dict, metrics.probability_of_improvement, reps=1000
     )
-    plot_utils.plot_probability_of_improvement(average_probabilities, average_prob_cis)
-    plt.savefig(f"{filename}_perf_cmp_discrete_dqn.png")
+    plot_utils.plot_probability_of_improvement(
+        average_probabilities, average_prob_cis, figsize=(8, 4)
+    )
     plt.tight_layout()
+    plt.savefig(f"{filename}_perf_cmp_discrete_dqn.png", dpi=500)
     plt.show()
