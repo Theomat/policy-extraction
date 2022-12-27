@@ -42,12 +42,26 @@ def __iterate__(
     new_space = copy.deepcopy(space)
     new_space.reset_count()
 
+    replay_buffer = []
+    episodes_length = []
+
     def our_step(
         rew: float, ep: int, st: S, Qval: np.ndarray, r: float, stp1: S, done: bool
     ) -> float:
+        if ep != len(episodes_length):
+            episodes_length.append([1])
+        else:
+            episodes_length[-1] += 1
         new_space.visit_state(st, Qfun(st))
-        new_space.learn_qvalues(st, np.argmax(Qval), r, stp1, done)
+        replay_buffer.append((st, np.argmax(Qval), r, stp1, done))
         return rew + r
+
+    mean_length = np.mean(episodes_length)
+    gamma = np.float_power(0.01, 1.0 / mean_length)
+    alpha = 1.0 / space.counts.values()
+
+    for st, Qval, r, stp1, done in replay_buffer:
+        new_space.learn_qvalues(st, Qval, r, stp1, done, alpha, gamma)
 
     total_rewards = vec_interact(
         policy_to_q_function(tree, space.nactions, nenvs),
