@@ -1,11 +1,39 @@
 import json
+
+from rliable import library as rly
+from rliable import metrics
+from rliable import plot_utils
+
 import matplotlib.pyplot as plt
 
 import numpy as np
-import pltpublish as pub
 
-from matplotlib.markers import MarkerStyle
-from matplotlib.lines import Line2D
+
+aggregate_func = lambda x: np.array(
+    [
+        metrics.aggregate_median(x),
+        metrics.aggregate_iqm(x),
+        metrics.aggregate_mean(x),
+        metrics.aggregate_optimality_gap(x),
+    ]
+)
+
+
+def easy_plot(scores_dict, filepath="test.png"):
+    aggregate_scores, aggregate_score_cis = rly.get_interval_estimates(
+        scores_dict, aggregate_func, reps=1000
+    )
+    fig, axes = plot_utils.plot_interval_estimates(
+        aggregate_scores,
+        aggregate_score_cis,
+        metric_names=["Median", "IQM", "Mean", "Optimality Gap"],
+        algorithms=list(scores_dict.keys()),
+        xlabel="Reward",
+    )
+    plt.tight_layout()
+    plt.savefig(filepath)
+    plt.show()
+
 
 if __name__ == "__main__":
     import argparse
@@ -22,12 +50,14 @@ if __name__ == "__main__":
 
     parameters = parser.parse_args()
     data_file: str = parameters.data
+    import os
+
+    filename = os.path.basename(data_file)
+    filename = filename[: filename.rfind(".")]
 
     # Load data
     with open(data_file) as fd:
         all_data = json.load(fd)
-
-    pub.setup()
 
     methods = list(all_data.keys())
 
@@ -36,6 +66,8 @@ if __name__ == "__main__":
     for seed in seeds:
         del all_data[seed]
     methods = list(all_data.keys())
+    depths = []
+    iterations = []
     # Find base name
     variants = {}
     for method in methods:
@@ -45,93 +77,94 @@ if __name__ == "__main__":
                 variants[base_name] = []
             variants[base_name].append(method)
 
-    symbols = ["o", "P", "D", "*", "x"]
-    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+            depth = int(method[method.find("-d=") + 3 : method.find("-it=")])
+            iteration = int(method[method.find("-it=") + 4 :])
 
-    it2index = []
-    depth2index = []
+            depths.append(depth)
+            iterations.append(iteration)
 
-    xlabels = []
+    iterations = sorted(iterations)
+    depths = sorted(depths)
 
-    last_x = 3
-    for base_name in variants.keys():
-        xlabels.append(base_name)
-        for variant in variants[base_name]:
-            # Parameters of variant
-            depth = int(variant[variant.find("-d=") + 3 : variant.find("-it=")])
-            iterations = int(variant[variant.find("-it=") + 4 :])
-            if iterations not in it2index:
-                it2index.append(iterations)
-            it_index = it2index.index(iterations)
-            if depth not in depth2index:
-                depth2index.append(depth)
-            depth_index = depth2index.index(depth)
-            # Compute points
-            x = []
-            y = []
-            for seed in seeds:
-                x.append(last_x)
-                y.append(all_data[variant][seed])
-            if base_name == "dqn":
-                plt.scatter(
-                    [1 for _ in y],
-                    y,
-                    c="black",
-                    alpha=0.5,
-                    marker=MarkerStyle("+", fillstyle="none"),
-                )
-                last_x -= 1
-                break
-            plt.scatter(
-                x,
-                y,
-                marker=MarkerStyle(symbols[it_index], fillstyle="none"),
-                c=colors[depth_index],
-                alpha=0.5,
+    # Load ALE scores as a dictionary mapping algorithms to their human normalized
+    # score matrices, each of which is of size `(num_runs x num_games)`.
+
+    # Load all games
+    score_dict = {}
+    for name, subnames in variants.items():
+        for subname in subnames:
+            score_dict[subname] = np.array(list(all_data[subname].values())).reshape(
+                (-1, 1)
             )
-            # plt.scatter([x[0]], [np.mean(y)], marker=symbols[it_index], c=colors[depth_index], alpha=1)
-        last_x += 1
+    score_dict["discrete-dqn"] = np.array(
+        list(all_data["discrete-dqn"].values())
+    ).reshape((-1, 1))
+    # score_dict = {key: np.array(list(values.values())).reshape((-1, 1)) for key, values in all_data.items() if key not in seeds}
 
-    xlabels.insert(1, "discrete-dqn")
-    y = []
-    for seed in seeds:
-        y.append(all_data["discrete-dqn"][seed])
-    plt.scatter(
-        [2 for _ in y],
-        y,
-        c="black",
-        alpha=0.5,
-        marker=MarkerStyle("+", fillstyle="none"),
+    # Delete copies of DQN
+    saved = False
+    for variant in variants["dqn"]:
+        if not saved:
+            score_dict["dqn"] = score_dict[variant]
+            saved = True
+        del score_dict[variant]
+
+    # Plot with respect to iterations
+    new_dict = {}
+    for method, x in score_dict.items():
+        if "-d=" in method and "-it=" in method:
+            depth = int(method[method.find("-d=") + 3 : method.find("-it=")])
+            if depth == depths[-1]:
+                new_dict[method.replace(f"-d={depth}", "")] = x
+        else:
+            new_dict[method] = x
+
+    easy_plot(new_dict, f"{filename}_performance_with_iterations.png")
+
+    new_dict = {}
+    for method, x in score_dict.items():
+        if "-d=" in method and "-it=" in method:
+            iteration = int(method[method.find("-it=") + 4 :])
+            if iteration == iterations[-1]:
+                new_dict[method.replace(f"-it={iteration}", "")] = x
+        else:
+            new_dict[method] = x
+
+    easy_plot(new_dict, f"{filename}_performance_with_depth.png")
+
+    # Load ProcGen scores as a dictionary containing pairs of normalized score
+    # matrices for pairs of algorithms we want to compare
+    compared_dict = {}
+    dqn_perf = score_dict["dqn"]
+    compared_dict["discrete-dqn,dqn"] = (score_dict["discrete-dqn"], dqn_perf)
+    for name in variants:
+        if name == "dqn":
+            continue
+        score = score_dict[f"{name}-d={depths[-1]}-it={iterations[-1]}"]
+        compared_dict[f"{name},dqn"] = (score, dqn_perf)
+
+    average_probabilities, average_prob_cis = rly.get_interval_estimates(
+        compared_dict, metrics.probability_of_improvement, reps=1000
     )
-
-    legend_elements = []
-    for depth_index, depth in enumerate(depth2index):
-        legend_elements.append(
-            Line2D(
-                [0],
-                [0],
-                color=colors[depth_index],
-                lw=0,
-                markersize=10,
-                marker="o",
-                label=f"depth = {depth}",
-            )
-        )
-    for it_index, iteration in enumerate(it2index):
-        legend_elements.append(
-            Line2D(
-                [0],
-                [0],
-                color="black",
-                lw=0,
-                label=f"iterations = {iteration}",
-                marker=MarkerStyle(symbols[it_index], fillstyle="none"),
-            )
-        )
-    plt.xticks(ticks=list(range(1, len(xlabels) + 1)), labels=xlabels, rotation=45)
-    plt.ylabel("Reward")
-    plt.xlabel("Method")
-    plt.grid(axis="y")
+    plot_utils.plot_probability_of_improvement(average_probabilities, average_prob_cis)
+    plt.savefig(f"{filename}_perf_cmp_dqn.png")
     plt.tight_layout()
-    plt.legend(handles=legend_elements, bbox_to_anchor=(0.2, -0.1)).set_draggable(True)
+    plt.show()
+
+    compared_dict = {}
+    discrete_dqn_perf = score_dict["discrete-dqn"]
+    compared_dict["dqn,discrete-dqn"] = (dqn_perf, discrete_dqn_perf)
+
+    for name in variants:
+        if name == "dqn":
+            continue
+        score = score_dict[f"{name}-d={depths[-1]}-it={iterations[-1]}"]
+        compared_dict[f"{name},discrete-dqn"] = (score, discrete_dqn_perf)
+
+    average_probabilities, average_prob_cis = rly.get_interval_estimates(
+        compared_dict, metrics.probability_of_improvement, reps=1000
+    )
+    plot_utils.plot_probability_of_improvement(average_probabilities, average_prob_cis)
+    plt.savefig(f"{filename}_perf_cmp_discrete_dqn.png")
+    plt.tight_layout()
     plt.show()
