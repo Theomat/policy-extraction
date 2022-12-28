@@ -54,10 +54,10 @@ def __iterate__(
         return rew + r
 
     total_rewards = vec_interact(
-        policy_to_q_function(tree, space.nactions, nenvs),
+        policy_to_q_function(tree, space.nactions, min(nenvs, episodes)),
         episodes,
         env_fn,
-        nenvs,
+        min(nenvs, episodes),
         our_step,
         0.0,
     )
