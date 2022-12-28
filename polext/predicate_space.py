@@ -53,8 +53,18 @@ class PredicateSpace(Generic[S]):
         return state
 
     def state_probability(self, state: S) -> float:
+        """
+        State must be a representative
+        """
         state = __make_hashable__(state)
         return self.counts.get(state, 0) / max(1, self._total_visits)
+
+    def state_visits(self, state: S) -> int:
+        """
+        State can be any state
+        """
+        state = self.get_representative(state)
+        return self.counts.get(state, 0)
 
     def _add_stats_(self, state: S, Q_values: np.ndarray):
         self.counts[state] += 1

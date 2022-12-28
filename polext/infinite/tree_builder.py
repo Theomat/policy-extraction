@@ -58,9 +58,9 @@ def __iterate__(
 
     mean_length = np.mean(episodes_length)
     gamma = np.float_power(0.01, 1.0 / mean_length)
-    alpha = 1.0 / space.counts.values()
 
-    for st, Qval, r, stp1, done in replay_buffer:
+    for st, Qval, r, stp1, done in replay_buffer[::-1]:
+        alpha = 1.0 / space.state_visits(st)
         new_space.learn_qvalues(st, Qval, r, stp1, done, alpha, gamma)
 
     total_rewards = vec_interact(
