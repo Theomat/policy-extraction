@@ -50,8 +50,10 @@ def __compute_score__(
     pos_entropy = 0
     neg_entropy = 0
     for a in part_classes.keys():
-        pos_entropy += part_classes[a] * np.log2(part_classes[a])
-        neg_entropy += not_part_classes[a] * np.log2(not_part_classes[a])
+        if part_classes[a] > 0:
+            pos_entropy += part_classes[a] * np.log2(part_classes[a])
+        if not_part_classes[a] > 0:
+            neg_entropy += not_part_classes[a] * np.log2(not_part_classes[a])
     score = (
         len(sub_states) / len(states) * pos_entropy
         + (1 - len(sub_states) / len(states)) * neg_entropy
