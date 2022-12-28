@@ -56,13 +56,6 @@ def __iterate__(
         replay_buffer.append((st, np.argmax(Qval), r, stp1, done))
         return rew + r
 
-    mean_length = np.mean(episodes_length)
-    gamma = np.float_power(0.01, 1.0 / mean_length)
-
-    for st, Qval, r, stp1, done in replay_buffer[::-1]:
-        alpha = 1.0 / space.state_visits(st)
-        new_space.learn_qvalues(st, Qval, r, stp1, done, alpha, gamma)
-
     total_rewards = vec_interact(
         policy_to_q_function(tree, space.nactions, nenvs),
         episodes,
@@ -72,6 +65,14 @@ def __iterate__(
         0.0,
     )
     mu, std = np.mean(total_rewards), 2 * np.std(total_rewards)
+
+    mean_length = np.mean(episodes_length)
+    gamma = np.float_power(0.01, 1.0 / mean_length)
+
+    for st, Qval, r, stp1, done in replay_buffer[::-1]:
+        alpha = 1.0 / space.state_visits(st)
+        new_space.learn_qvalues(st, Qval, r, stp1, done, alpha, gamma)
+
     new_space.mix_learnt(0.5, 0.5)
     next_tree, (nmu, nstd) = __iterate__(
         builder,
