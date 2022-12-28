@@ -5,9 +5,17 @@
 benchmark.html
 .benchmark_suite
 decision_trees
+*.csv
 
 # Model trained with RL ZOO
 logs*
+*.zip
+
+# Image files
+*.png
+
+# dtControl files
+
 
 # Videos files
 *.json
