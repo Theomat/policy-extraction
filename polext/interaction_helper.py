@@ -143,7 +143,7 @@ def vec_interact(
                 out.append(val)
                 num_episodes[i] = episodes_done + nenv
                 episodes_done += 1
-                mask[i] = episodes_done < episodes
+                mask[i] = num_episodes[i] < episodes
             else:
                 current_episodes[i] = step(
                     current_episodes[i],
