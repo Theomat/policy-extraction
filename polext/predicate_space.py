@@ -1,4 +1,14 @@
-from typing import Callable, Generator, Generic, Iterable, List, Set, Tuple, TypeVar
+from typing import (
+    Callable,
+    Generator,
+    Generic,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+)
 
 import numpy as np
 
@@ -65,6 +75,13 @@ class PredicateSpace(Generic[S]):
         """
         state = self.get_representative(state)
         return self.counts.get(state, 0)
+
+    def state_Q(self, state: S) -> Optional[np.ndarray]:
+        """
+        State can be any state
+        """
+        state = self.get_representative(state)
+        return self.Qtable.get(state, None)
 
     def _add_stats_(self, state: S, Q_values: np.ndarray):
         self.counts[state] += 1
