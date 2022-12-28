@@ -68,7 +68,7 @@ def __iterate__(
     gamma = np.float_power(0.01, 1.0 / mean_length)
 
     for st, Qval, r, stp1, done in replay_buffer[::-1]:
-        alpha = 1.0 / space.state_visits(st)
+        alpha = 1.0 / new_space.state_visits(st)
         new_space.learn_qvalues(st, Qval, r, stp1, done, alpha, gamma)
 
     new_space.mix_learnt(0.5, 0.5)
