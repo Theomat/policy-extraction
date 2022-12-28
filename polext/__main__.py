@@ -222,7 +222,7 @@ if __name__ == "__main__":
             space.visit_state(state, Qvalues)
         return val + r
 
-    rewards = vec_interact(Q, episodes, env_fn, nenvs, my_step, 0, seed)
+    rewards = vec_interact(Q, episodes, env_fn, nenvs, my_step, 0, seed=seed)
 
     print("Baseline Q-table:")
     print_reward(episodes, np.mean(rewards), 2 * np.std(rewards))
