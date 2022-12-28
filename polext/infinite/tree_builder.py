@@ -37,7 +37,7 @@ def __iterate__(
     tree, _ = builder(space, max_depth, method, seed=seed, **kwargs)
     if iterations <= 1:
         return tree, vec_eval_policy(
-            tree, episodes, env_fn, nenvs, space.nactions, seed
+            tree, episodes, env_fn, nenvs, space.nactions, seed=seed
         )
     new_space = copy.deepcopy(space)
     new_space.reset_count()
@@ -60,6 +60,7 @@ def __iterate__(
         min(nenvs, episodes),
         our_step,
         0.0,
+        seed=seed,
     )
     mu, std = np.mean(total_rewards), 2 * np.std(total_rewards)
 
