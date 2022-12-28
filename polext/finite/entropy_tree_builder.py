@@ -36,6 +36,8 @@ def __compute_score__(
     Qmax: Dict[S, int],
     classes: Dict[int, Set[S]],
 ) -> float:
+    if len(states) == 0:
+        return 0
     score = 0
     part_classes = {
         action: sum(space.state_probability(x) for x in s.intersection(sub_states))
