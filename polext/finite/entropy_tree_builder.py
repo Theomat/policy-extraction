@@ -39,12 +39,12 @@ def __compute_score__(
     score = 0
     part_classes = {
         action: sum(space.state_probability(x) for x in s.intersection(sub_states))
-        / len(sub_states)
+        / max(1, len(sub_states))
         for action, s in classes.items()
     }
     not_part_classes = {
         action: sum(space.state_probability(x) for x in s.difference(sub_states))
-        / (len(states) - len(sub_states))
+        / max(1, (len(states) - len(sub_states)))
         for action, s in classes.items()
     }
     pos_entropy = 0
