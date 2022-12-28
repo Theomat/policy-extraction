@@ -48,8 +48,8 @@ def __iterate__(
     def our_step(
         rew: float, ep: int, st: S, Qval: np.ndarray, r: float, stp1: S, done: bool
     ) -> float:
-        if ep != len(episodes_length):
-            episodes_length.append([1])
+        if ep + 1 != len(episodes_length):
+            episodes_length.append(1)
         else:
             episodes_length[-1] += 1
         new_space.visit_state(st, Qfun(st))
