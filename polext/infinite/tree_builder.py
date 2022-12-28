@@ -43,15 +43,12 @@ def __iterate__(
     new_space.reset_count()
 
     replay_buffer = []
-    episodes_length = []
+    episodes_length = [0 for _ in range(episodes)]
 
     def our_step(
         rew: float, ep: int, st: S, Qval: np.ndarray, r: float, stp1: S, done: bool
     ) -> float:
-        if ep + 1 != len(episodes_length):
-            episodes_length.append(1)
-        else:
-            episodes_length[-1] += 1
+        episodes_length[ep] += 1
         new_space.visit_state(st, Qfun(st))
         replay_buffer.append((st, np.argmax(Qval), r, stp1, done))
         return rew + r
