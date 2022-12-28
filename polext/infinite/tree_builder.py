@@ -32,7 +32,7 @@ def __iterate__(
     iterations: int = 0,
     episodes: int = 0,
     seed: Optional[int] = None,
-    **kwargs
+    **kwargs,
 ) -> Tuple[V, Tuple[float, float]]:
     tree, _ = builder(space, max_depth, method, seed=seed, **kwargs)
     if iterations <= 1:
@@ -84,7 +84,7 @@ def __iterate__(
         nenvs=nenvs,
         seed=seed,
         episodes=episodes,
-        **kwargs
+        **kwargs,
     )
 
     if nmu > mu:
@@ -102,7 +102,7 @@ def build_tree(
     iterations: int = 0,
     episodes: int = 0,
     seed: Optional[int] = None,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DecisionTree[S], Tuple[float, float]]:
     return __iterate__(
         fbuild_tree,
@@ -115,7 +115,7 @@ def build_tree(
         iterations,
         episodes,
         seed,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -130,7 +130,7 @@ def build_forest(
     iterations: int = 0,
     episodes: int = 0,
     seed: Optional[int] = None,
-    **kwargs
+    **kwargs,
 ) -> Tuple[Forest[S], Tuple[float, float]]:
     return __iterate__(
         fbuild_forest,
@@ -144,5 +144,5 @@ def build_forest(
         episodes,
         seed,
         trees=trees,
-        **kwargs
+        **kwargs,
     )
