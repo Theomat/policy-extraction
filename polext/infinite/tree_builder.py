@@ -50,7 +50,9 @@ def __iterate__(
     ) -> float:
         episodes_length[ep] += 1
         new_space.visit_state(st, Qfun(st))
-        replay_buffer.append((st, np.argmax(Qval), r, stp1, done))
+        Qvals = space.state_Q(st)
+
+        replay_buffer.append((st, np.argmax(Qvals), r, stp1, done))
         return rew + r
 
     total_rewards = vec_interact(
@@ -72,12 +74,17 @@ def __iterate__(
         new_space.learn_qvalues(st, Qval, r, stp1, done, alpha, gamma)
 
     new_space.mix_learnt(0.5, 0.5)
+
+    def next_Q(state: S) -> np.ndarray:
+        value = space.state_Q(state)
+        return value if value is not None else Qfun(state)
+
     next_tree, (nmu, nstd) = __iterate__(
         builder,
         new_space,
         max_depth,
         method,
-        Qfun=Qfun,
+        Qfun=next_Q,
         iterations=iterations - 1,
         env_fn=env_fn,
         nenvs=nenvs,
