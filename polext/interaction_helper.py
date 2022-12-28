@@ -117,6 +117,7 @@ def vec_interact(
     venv = DummyVecEnv([env_creator for _ in range(nenv)])
     venv.seed(seed)
     current_episodes = [u0 for _ in range(nenv)]
+    num_episodes = [i for i in range(nenv)]
     mask = [True for _ in range(nenv)]
     episodes_done = 0
     obs = venv.reset()
@@ -131,7 +132,7 @@ def vec_interact(
                 cobs = info[i]["terminal_observation"]
                 val = step(
                     current_episodes[i],
-                    episodes_done,
+                    num_episodes[i],
                     cobs,
                     q_values[i],
                     reward[i],
@@ -140,12 +141,13 @@ def vec_interact(
                 )
                 current_episodes[i] = u0
                 out.append(val)
+                num_episodes[i] = episodes_done + nenv
                 episodes_done += 1
                 mask[i] = episodes_done < episodes
             else:
                 current_episodes[i] = step(
                     current_episodes[i],
-                    episodes_done,
+                    num_episodes[i],
                     obs[i],
                     q_values[i],
                     reward[i],
