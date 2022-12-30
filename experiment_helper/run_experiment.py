@@ -197,7 +197,7 @@ if __name__ == "__main__":
         with open(output) as fd:
             all_data = json.load(fd)
     # Capture data
-    pbar = tqdm.tqdm(total=seeds, unit="seed", smoothing=0)
+    pbar = tqdm.tqdm(total=seeds, unit="seed", smoothing=1)
     for i in range(seeds):
         seed = 2410 * i + 17 * i + i
         # If already done => skip it
