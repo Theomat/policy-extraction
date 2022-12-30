@@ -1,6 +1,6 @@
 # [Pong](https://www.gymlibrary.dev/environments/atari/pong/)
 
-The environement used is `PongNoFrameskip-v4` with predicates that were hand designed.
+The environment used is `PongNoFrameskip-v4` with predicates that were hand designed.
 This can be changed in the ``env.py`` file.
 
 ## Generating a policy

@@ -1,6 +1,6 @@
 # [Cart Pole](https://www.gymlibrary.dev/environments/classic_control/cart_pole/)
 
-The environement used is `CartPole-v1` with the state space discretized where each dimension is split into linear bins.
+The environment used is `CartPole-v1` with the state space discretized where each dimension is split into linear bins.
 This can be changed in the ``env.py`` file.
 
 ## Generating a policy

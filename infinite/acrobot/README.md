@@ -1,6 +1,6 @@
 # [Acrobot](https://www.gymlibrary.dev/environments/classic_control/acrobot/)
 
-The environement used is `Acrobot-v1` with the state space discretized where each dimension is split into linear bins.
+The environment used is `Acrobot-v1` with the state space discretized where each dimension is split into linear bins.
 This can be changed in the ``env.py`` file.
 
 ## Generating a policy

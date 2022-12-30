@@ -1,6 +1,6 @@
 # [Mountain Car](https://www.gymlibrary.dev/environments/classic_control/mountain_car/)
 
-The environement used is `MountainCar-v0` with the state space discretized where each dimension is split into linear bins.
+The environment used is `MountainCar-v0` with the state space discretized where each dimension is split into linear bins.
 This can be changed in the ``env.py`` file.
 
 ## Generating a policy
