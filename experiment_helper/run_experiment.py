@@ -197,12 +197,20 @@ if __name__ == "__main__":
         with open(output) as fd:
             all_data = json.load(fd)
     # Capture data
-    pbar = tqdm.tqdm(total=seeds, unit="seed", smoothing=1)
+    initial = 0
     for i in range(seeds):
         seed = 2410 * i + 17 * i + i
         # If already done => skip it
         if all_data.get(str(seed), False):
-            pbar.update()
+            initial += 1
+        else:
+            break
+    pbar = tqdm.tqdm(initial=initial, total=seeds, unit="seed")
+
+    for i in range(initial, seeds):
+        seed = 2410 * i + 17 * i + i
+        # If already done => skip it
+        if all_data.get(str(seed), False):
             continue
         all_data[seed] = False
         # This part is recoverable from files
