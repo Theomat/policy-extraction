@@ -47,13 +47,18 @@ def Q_builder(path: str) -> Callable[[np.ndarray], np.ndarray]:
     model = model.load(path)
 
     def f(observation: np.ndarray) -> np.ndarray:
-        observation = (
-            torch.tensor(observation, device=model.device).swapdims(1, 3).swapdims(2, 3)
-        )
+        obs = torch.tensor(observation, device=model.device)
+        batched = len(obs.shape) == 4
+        if not batched:
+            obs.unsqueeze_(0)
+        obs.swapdims_(1, 3).swapdims_(2, 3)
 
         with torch.no_grad():
-            q_values = model.q_net(observation)[0]
-        return q_values.cpu().numpy()
+            q_values = model.q_net(obs).cpu().numpy()
+        if batched:
+            return q_values
+        else:
+            return q_values[0]
 
     return f
 
