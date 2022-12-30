@@ -53,7 +53,7 @@ def Q_builder(path: str) -> Callable[[np.ndarray], np.ndarray]:
 
         with torch.no_grad():
             q_values = model.q_net(observation)[0]
-        return q_values.numpy()
+        return q_values.cpu().numpy()
 
     return f
 
