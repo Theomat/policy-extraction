@@ -6,14 +6,15 @@ from polext import Predicate
 import torch
 import gym
 
-bins = 20
+bins = 40
+
 states_arrays = [
     ("x", np.linspace(-1.0, +1.0, num=bins, endpoint=False)),
-    ("y", np.linspace(-1.5, +1.5, num=bins, endpoint=False)),
-    ("vx", np.linspace(-5, +5, num=bins, endpoint=False)),
-    ("vy", np.linspace(-5, +5, num=bins, endpoint=False)),
-    ("angle", np.linspace(-3.14, +3.14, num=bins, endpoint=False)),
-    ("vangle", np.linspace(-5, 5, num=bins, endpoint=False)),
+    ("y", np.linspace(-0.2, +2.0, num=bins, endpoint=False)),
+    ("vx", np.linspace(-1, +1, num=bins, endpoint=False)),
+    ("vy", np.linspace(-1, +1, num=bins, endpoint=False)),
+    ("angle", np.linspace(-3.14 / 2, +3.14 / 2, num=bins, endpoint=False)),
+    ("vangle", np.linspace(-3.14, 3.14, num=bins, endpoint=False)),
     ("left leg on ground", [1]),
     ("right leg on ground", [1]),
 ]
@@ -36,19 +37,70 @@ for i, (name, array) in enumerate(states_arrays):
         predicates.append(Predicate(f"{name} >= {el:.2e}", pred(i, el)))
 
 
+def idx_from_name(name: str) -> int:
+    for i, (idx_name, _) in enumerate(states_arrays):
+        if idx_name == name:
+            return i
+    return 999999
+
+
+def make_pair_pred(na: str, nb: str):
+    ai = idx_from_name(na)
+    bi = idx_from_name(nb)
+
+    def lower(s):
+        return s[ai] + s[bi] <= 0
+
+    def higher(s):
+        return s[ai] + s[bi] >= 0
+
+    return lower, higher
+
+
+for na, nb in [("angle", "vangle"), ("x", "vx"), ("y", "vy")]:
+    lower, higher = make_pair_pred(na, nb)
+    predicates.append(Predicate(f"{na} + {nb} >= 0", higher))
+    predicates.append(Predicate(f"{na} + {nb} <= 0", lower))
+
+predicates.append(Predicate("has ground contact", lambda s: s[-1] + s[-2] >= 1))
+
+
+def center_angle(s):
+    angle_targ = s[0] * 0.5 + s[2] * 1.0  # angle should point towards center
+    if angle_targ > 0.4:
+        angle_targ = 0.4  # more than 0.4 radians (22 degrees) is bad
+    if angle_targ < -0.4:
+        angle_targ = -0.4
+    return angle_targ
+
+
+predicates.append(
+    Predicate(
+        "(center - angle)/2 - vangle <= .05",
+        lambda s: (center_angle(s) - s[4]) / 2 - s[5] <= 0.05,
+    )
+)
+predicates.append(
+    Predicate(
+        "(center - angle)/2 - vangle >= .05",
+        lambda s: (center_angle(s) - s[4]) / 2 - s[5] >= 0.05,
+    )
+)
+
+
 def Q_builder(path: str) -> Callable[[np.ndarray], List[float]]:
     model = DQN("MlpPolicy", make_env(), policy_kwargs={"net_arch": [256, 256]})
     model = model.load(path)
 
     def f(observation: np.ndarray) -> List[float]:
-        observation = torch.tensor(observation, device=model.device)
-        batched = len(observation.shape) == 2
+        obs = torch.tensor(observation, device=model.device)
+        batched = len(obs.shape) == 2
         if not batched:
-            observation.unsqueeze_(0)
+            obs.unsqueeze_(0)
         # print(observation)
         # assert False
         with torch.no_grad():
-            q_values = model.q_net(observation).cpu().numpy()
+            q_values = model.q_net(obs).cpu().numpy()
         if batched:
             return q_values
         else:
