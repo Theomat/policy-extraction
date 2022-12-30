@@ -177,8 +177,8 @@ class PredicateSpace(Generic[S]):
             if self.counts[state] == 0:
                 continue
             Qvals /= self.counts[state]
-            Qvals *= current
             if state in self.learnt_Q:
+                Qvals *= current
                 Qvals += learnt * self.learnt_Q[state]
 
     @property
