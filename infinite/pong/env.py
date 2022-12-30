@@ -80,17 +80,15 @@ def ready(obs):
     return obs
 
 
-predicates = [
-    Predicate(
-        "my paddle y < ball y",
-        lambda obs: get_paddle_y(MY_PADDLE, ready(obs)) < get_ball_pos(ready(obs))[1],
-    ),
-]
+predicates = []
 
 
-MY_PADDLE = 73
-ENEMY_PADDLE = 10
+MY_PADDLE_X = 73
+ENEMY_PADDLE_X = 10
 PADDLE_HEIGHT = 7
+BALL_SIZE = 1
+# The lower the better, integer representing a pixel step
+PREDICATE_STEP = 10
 
 
 def get_paddle_y(paddle: int, img: np.ndarray) -> int:
@@ -98,7 +96,7 @@ def get_paddle_y(paddle: int, img: np.ndarray) -> int:
 
 
 def get_ball_pos(img: np.ndarray, index: int = 3) -> Tuple[int, int]:
-    tmp = img[14:76, ENEMY_PADDLE + 1 : MY_PADDLE, index] != 87
+    tmp = img[14:76, ENEMY_PADDLE_X + 1 : MY_PADDLE_X, index] != 87
     x = np.max(np.argmax(tmp, axis=0, keepdims=True))
     return x, np.argmax(tmp[x])
 
@@ -116,22 +114,22 @@ def make_pred(val: int, getter: Callable):
     return f
 
 
-for i in range(ENEMY_PADDLE + 1, MY_PADDLE, 10):
+for i in range(ENEMY_PADDLE_X + 1, MY_PADDLE_X, PREDICATE_STEP):
     predicates.append(
         Predicate(f"ball x <= {i}", make_pred(i, lambda obs: get_ball_pos(obs)[0]))
     )
 
-for i in range(0, 62, 10):
+for i in range(0, 62, PREDICATE_STEP):
     predicates.append(
         Predicate(
             f"my paddle y <= {i}",
-            make_pred(i, lambda obs: get_paddle_y(MY_PADDLE, obs)),
+            make_pred(i, lambda obs: get_paddle_y(MY_PADDLE_X, obs)),
         )
     )
     predicates.append(
         Predicate(
             f"enemy paddle y <= {i}",
-            make_pred(i, lambda obs: get_paddle_y(ENEMY_PADDLE, obs)),
+            make_pred(i, lambda obs: get_paddle_y(ENEMY_PADDLE_X, obs)),
         )
     )
     predicates.append(
@@ -146,6 +144,20 @@ for i in range(7):
         Predicate(f"ball vy <= {i}", make_pred(i, lambda obs: get_ball_speed(obs)[1]))
     )
 
+predicates.append(
+    Predicate(
+        f"my paddle too low to hit ball",
+        lambda obs: get_paddle_y(MY_PADDLE_X, ready(obs))
+        > get_ball_pos(ready(obs))[1] + BALL_SIZE,
+    )
+)
+predicates.append(
+    Predicate(
+        f"my paddle too high to hit ball",
+        lambda obs: get_paddle_y(MY_PADDLE_X, ready(obs)) + PADDLE_HEIGHT
+        < get_ball_pos(ready(obs))[1],
+    )
+)
 # if __name__ == "__main__":
 #     env = make_env()
 #     obs = env.reset()
@@ -158,10 +170,10 @@ for i in range(7):
 #     plt.figure()
 #     for i in range(4):
 #         plt.subplot(1, 4, 1 + i)
-#         plt.imshow(obs[14:76, ENEMY_PADDLE:MY_PADDLE + 1, i])
+#         plt.imshow(obs[14:76, ENEMY_PADDLE_X:MY_PADDLE_X + 1, i])
 #     plt.show()
-# print("my paddle:", get_paddle_y(MY_PADDLE, obs))
-# print("enemy paddle:", get_paddle_y(ENEMY_PADDLE, obs))
+# print("my paddle:", get_paddle_y(MY_PADDLE_X, obs))
+# print("enemy paddle:", get_paddle_y(ENEMY_PADDLE_X, obs))
 # print("ball pos:", get_ball(obs))
 # py =
 # print(py)
