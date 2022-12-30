@@ -90,7 +90,7 @@ predicates.append(
 
 def Q_builder(path: str) -> Callable[[np.ndarray], List[float]]:
     model = DQN("MlpPolicy", make_env(), policy_kwargs={"net_arch": [256, 256]})
-    model = model.load(path)
+    model = model.load(path, buffer_size=0)
 
     def f(observation: np.ndarray) -> List[float]:
         obs = torch.tensor(observation, device=model.device)

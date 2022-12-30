@@ -58,7 +58,7 @@ def Q_builder(path: str) -> Callable[[np.ndarray], np.ndarray]:
     model = DQN(
         "MlpPolicy", gym.make("MountainCar-v0"), policy_kwargs={"net_arch": [256, 256]}
     )
-    model = model.load(path)
+    model = model.load(path, buffer_size=0)
 
     def f(state: np.ndarray) -> np.ndarray:
         batched = len(state.shape) == 2

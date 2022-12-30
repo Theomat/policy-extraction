@@ -44,7 +44,7 @@ make_env = lambda: VecActionWrapper(
 
 def Q_builder(path: str) -> Callable[[np.ndarray], np.ndarray]:
     model = DQN("CnnPolicy", make_env(), buffer_size=0)
-    model = model.load(path)
+    model = model.load(path, buffer_size=0)
 
     def f(observation: np.ndarray) -> np.ndarray:
         obs = torch.tensor(observation, device=model.device)

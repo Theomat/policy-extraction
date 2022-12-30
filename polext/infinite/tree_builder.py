@@ -49,7 +49,13 @@ def __iterate__(
         rew: float, ep: int, st: S, Qval: np.ndarray, r: float, stp1: S, done: bool
     ) -> float:
         episodes_length[ep] += 1
-        new_space.visit_state(st, Qfun(st))
+        old_shape = st.shape
+        qq = Qfun(st)
+        if len(qq.shape) == 2:
+            print("iterations:", iterations)
+            print("st shape:", old_shape)
+            print("qq shape:", qq.shape)
+        new_space.visit_state(st, qq)
         action = np.argmax(Qval)
         replay_buffer.append((st, action, r, stp1, done))
         return rew + r
