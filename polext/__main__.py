@@ -1,6 +1,6 @@
 import importlib
 import sys
-from typing import Any, Callable, List, Tuple, Union
+from typing import Any, Callable, Tuple, Union
 
 from rich import print
 from rich.text import Text
@@ -8,10 +8,12 @@ from rich.text import Text
 import numpy as np
 
 from polext.decision_tree import DecisionTree
-from polext.finite import FINITE_METHODS
 from polext.forest import Forest
-from polext.predicate_space import PredicateSpace, enumerated_space
+from polext.predicate_space import PredicateSpace
 from polext.interaction_helper import vec_eval_policy, vec_interact
+from polext.tree_builder import build_tree, tree_loss, list_registered_algorithms
+from polext.q_values_learner import QValuesLearner
+from polext.algos import *
 
 
 REWARD_STYLE = "gold1"
@@ -35,29 +37,30 @@ def print_reward(eval_episodes: int, mean: float, diff: float):
 
 def run_method(
     space: PredicateSpace,
+    Qtable: QValuesLearner,
     max_depth: int,
     method: str,
     seed: int,
-    allowed_methods: List[str],
     builder: Callable,
     callback: Callable,
 ):
-    if method not in allowed_methods:
+    if method not in list_registered_algorithms():
         print(
             Text.assemble(
                 ('Method:"', "red"),
                 method,
                 ('" is unknown, available methods are:', "red"),
-                ", ".join(allowed_methods),
+                ", ".join(list_registered_algorithms()),
             ),
             file=sys.stderr,
         )
         return
-    print("Method:", Text.assemble((method, "bold")))
-    out = builder(space, max_depth, method, seed=seed)
-    tree = callback(out)
-    if isinstance(tree, DecisionTree):
-        tree.print()
+    out = builder(space, Qtable, max_depth, method, seed=seed)
+    for i, val in enumerate(out):
+        print("Method:", Text.assemble((method, "bold")), f"iteration {i+1}")
+        tree = callback(val)
+        if isinstance(tree, DecisionTree):
+            tree.print()
     print()
 
 
@@ -80,7 +83,7 @@ if __name__ == "__main__":
     parser.add_argument(
         type=str,
         dest="method",
-        help="methods to be used",
+        help=f"methods to be used any of {list_registered_algorithms()}",
     )
     parser.add_argument(
         type=int,
@@ -100,20 +103,7 @@ if __name__ == "__main__":
         help="number of envs to run simultaneously (i.e. batch size)",
     )
 
-    group = parser.add_argument_group(
-        "State space", "parameters that change the state space"
-    )
-    group.add_argument(
-        "--finite",
-        action="store_true",
-        help="finite state space and state space is not sampled",
-    )
-    group.add_argument(
-        "--default-space",
-        action="store_true",
-        help="use state space and not predicate space",
-    )
-    group.add_argument(
+    parser.add_argument(
         "--iterations",
         type=int,
         default=1,
@@ -136,10 +126,8 @@ if __name__ == "__main__":
     model_path: str = parameters.model_path
     method: str = parameters.method
     episodes: int = parameters.episodes
-    predicate_space: bool = not parameters.default_space
     iterations: int = parameters.iterations
     seed: int = parameters.seed
-    finite: bool = parameters.finite
     max_depth: int = parameters.depth
     ntrees: int = parameters.forest
     nenvs: int = parameters.n
@@ -157,14 +145,6 @@ if __name__ == "__main__":
             file=sys.stderr,
         )
         sys.exit(1)
-    if finite and iterations > 1:
-        print(
-            Text.assemble(
-                ("You cannot do mutliple iterations with the finite flag!", "red")
-            ),
-            file=sys.stderr,
-        )
-        sys.exit(1)
     # Load module
     module = importlib.import_module(
         script_path.replace(".py", "").replace("./", "").replace("/", ".")
@@ -178,36 +158,15 @@ if __name__ == "__main__":
     # Find out methods to run
     methods_todo = []
     if method == "all":
-        methods_todo = FINITE_METHODS
+        methods_todo = list_registered_algorithms()
     elif "," in method:
         methods_todo = method.split(",")
     else:
         methods_todo = [method]
 
-    # Guess if environment is finite or infinite
-    is_infinite = True
-    try:
-        states = module.__getattribute__("states")
-        is_infinite = False
-    except:
-        pass
-    if finite and is_infinite:
-        print(
-            Text.assemble(
-                ("You cannot use the finite flag with an infinite state space!", "red")
-            ),
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
     # Setup predicate space
-    should_sample_space = True
-    if finite:
-        states = module.__getattribute__("states")
-        space = enumerated_space(states, Q, predicates, predicate_space)
-        should_sample_space = False
-    else:
-        space = PredicateSpace(predicates, True)
+    space = PredicateSpace(predicates)
+    Qtable = QValuesLearner()
     # Empirical evaluation of Q-values
     def my_step(
         val: float,
@@ -218,8 +177,8 @@ if __name__ == "__main__":
         stp1: np.ndarray,
         done: bool,
     ) -> float:
-        if should_sample_space:
-            space.visit_state(state, Qvalues)
+        s = space.get_representative(state)
+        Qtable.add_one_visit(s, Qvalues)
         return val + r
 
     rewards = vec_interact(Q, episodes, env_fn, nenvs, my_step, 0, seed=seed)
@@ -228,22 +187,15 @@ if __name__ == "__main__":
     print_reward(episodes, np.mean(rewards), 2 * np.std(rewards))
     print()
 
-    # Setup eval function and building function
-    from polext.finite import build_forest, tree_loss, forest_loss
-
-    if is_infinite:
-        from polext.infinite import build_tree
-    else:
-        from polext.finite import build_tree
-
     eval_fn = vec_eval_policy
     loss = tree_loss
     base_builder = build_tree
-    if ntrees > 1:
-        base_builder = lambda *args, **kwargs: build_forest(
-            *args, trees=ntrees, **kwargs
-        )
-        loss = forest_loss
+    # TODO:
+    # if ntrees > 1:
+    #     base_builder = lambda *args, **kwargs: build_forest(
+    #         *args, trees=ntrees, **kwargs
+    #     )
+    #     loss = forest_loss
     builder = lambda *args, **kwargs: base_builder(
         *args,
         Qfun=Q,
@@ -258,24 +210,20 @@ if __name__ == "__main__":
         out: Tuple[Union[DecisionTree, Forest], Any]
     ) -> Union[DecisionTree, Forest]:
         tree, score = out
-        if not is_infinite:
-            print("Lost Q-Values:", Text.assemble((str(score), FINITE_LOSS_STYLE)))
-            score = eval_fn(tree, episodes, env_fn, nenvs, space.nactions, seed)
-        else:
-            print(
-                "Lost Q-Values:",
-                Text.assemble((str(loss(tree, space)), FINITE_LOSS_STYLE)),
-            )
+        print(
+            "Lost Q-Values:",
+            Text.assemble((str(loss(tree, space, Qtable)), FINITE_LOSS_STYLE)),
+        )
         print_reward(episodes, score[0], score[1])
         return tree
 
     for method in methods_todo:
         run_method(
             space,
+            Qtable,
             max_depth,
             method,
             seed,
-            FINITE_METHODS,
             builder,
             callback,
         )

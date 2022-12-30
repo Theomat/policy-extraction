@@ -1,48 +1,51 @@
-from typing import Dict, List, Set, TypeVar
+from typing import Dict, Set, TypeVar
 
 import numpy as np
 
 from polext.decision_tree import DecisionTree, Node
-from polext.finite.greedy_builder import greedy_finisher, greedy_q_selection
-from polext.predicate import Predicate
+from polext.algos.greedy import greedy_finisher
 from polext.predicate_space import PredicateSpace
+from polext.q_values_learner import QValuesLearner
+from polext.tree_builder import register, TreeBuildingAlgo
 
 S = TypeVar("S")
 
 
-def optimistic_tree_builder(loss):
-    def f(space: PredicateSpace[S], max_depth: int, **kwargs) -> DecisionTree[S]:
-        Qmax = {s: np.argmax(vals) for s, vals in space.Qtable.items()}
-        classes = {action: set() for action in range(space.nactions)}
-        for s in space.states:
-            a = Qmax[s]
-            classes[a].add(s)
-        return __builder__(
-            space,
-            max_depth,
-            Qmax,
-            loss,
-            classes,
-        )
+def optimistic_tree_builder(
+    space: PredicateSpace[S], Qtable: QValuesLearner, max_depth: int, **kwargs
+) -> DecisionTree[S]:
+    Qmax = {s: np.argmax(Qtable[s]) for s in space.seen}
+    classes = {action: set() for action in range(Qtable.nactions)}
+    for s in space.seen:
+        a = Qmax[s]
+        classes[a].add(s)
+    return __builder__(
+        space,
+        Qtable,
+        max_depth,
+        Qmax,
+        classes,
+    ).simplified()
 
-    return f
+
+register(TreeBuildingAlgo("optimistic", optimistic_tree_builder))
 
 
 def __compute_score__(
-    states: Set[S],
+    space: PredicateSpace[S],
+    Qtable: QValuesLearner,
     sub_states: Set[S],
-    Qtable: Dict[S, List[float]],
     depth_left: int,
     Qmax: Dict[S, int],
     classes: Dict[int, Set[S]],
 ) -> float:
     score = 0
     part_classes = {
-        action: sum(Qtable[s][Qmax[s]] for s in sub.intersection(sub_states))
+        action: sum(Qtable[s][Qmax[s]] for s in sub_states)
         for action, sub in classes.items()
     }
     not_part_classes = {
-        action: sum(Qtable[s][Qmax[s]] for s in sub.difference(sub_states))
+        action: sum(Qtable[s][Qmax[s]] for s in space.seen if s not in sub_states)
         for action, sub in classes.items()
     }
     score = 0
@@ -58,7 +61,7 @@ def __compute_score__(
         score += npli[i][1]
         availables_pos.append(pli[i][0])
         availables_neg.append(npli[i][0])
-    for s in states:
+    for s in space.seen:
         a = Qmax[s]
         if s in sub_states:
             if a not in availables_pos:
@@ -71,50 +74,49 @@ def __compute_score__(
 
 def __builder__(
     space: PredicateSpace[S],
+    Qtable: QValuesLearner,
     depth_left: int,
     Qmax: Dict[S, int],
-    loss,
     classes: Dict[int, Set[S]],
 ) -> DecisionTree[S]:
     if depth_left <= 2:
-        tree = greedy_finisher(space, greedy_q_selection, loss)
+        tree = greedy_finisher(space, Qtable)
         assert tree
         return tree
 
     # Compute current score
     best_predicate = None
     best_score = __compute_score__(
-        space.states, space.states, space.Qtable, 1, Qmax, classes
+        space, Qtable, space.seen, depth_left, Qmax, classes
     )
 
     for candidate, sub_states in space.predicates_set.items():
 
         score = __compute_score__(
-            space.states, sub_states, space.Qtable, depth_left, Qmax, classes
+            space, Qtable, sub_states, depth_left, Qmax, classes
         )
         if score > best_score:
             best_score = score
             best_predicate = candidate
 
     if best_predicate is None:
-        tree = greedy_finisher(space, greedy_q_selection, loss)
+        tree = greedy_finisher(space, Qtable)
         assert tree
         return tree
     sub_states = space.predicates_set[best_predicate]
-    left_space, right_space = space.children(best_predicate)
-
+    left_space, right_space = space.split(best_predicate)
     left = __builder__(
         left_space,
+        Qtable,
         depth_left - 1,
         Qmax,
-        loss,
         {action: sub.intersection(sub_states) for action, sub in classes.items()},
     )
     right = __builder__(
         right_space,
+        Qtable,
         depth_left - 1,
         Qmax,
-        loss,
         {action: sub.difference(sub_states) for action, sub in classes.items()},
     )
     return Node(best_predicate, left, right)
