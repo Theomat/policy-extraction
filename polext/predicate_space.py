@@ -43,8 +43,9 @@ class PredicateSpace(Generic[S]):
             self._add_stats_(state, Q_values)
         else:
             # Add new state
-            self.counts[state] = 1
-            self.Qtable[state] = np.asarray(Q_values)
+            self.counts[state] = 0
+            self.Qtable[state] = np.zeros((self.nactions), dtype=float)
+            self._add_stats_(state, Q_values)
             if not self.use_representatives:
                 for p in self.predicates:
                     if p(state):
@@ -164,7 +165,7 @@ class PredicateSpace(Generic[S]):
         else:
             nval = 0
         if s not in self.learnt_Q:
-            self.learnt_Q[s] = np.array([0 for _ in range(self.nactions)])
+            self.learnt_Q[s] = np.zeros((self.nactions), dtype=float)
         self.learnt_Q[s][action] += alpha * (
             r + gamma * nval - self.learnt_Q[s][action]
         )
