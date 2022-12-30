@@ -48,8 +48,8 @@ def Q_builder(path: str) -> Callable[[np.ndarray], np.ndarray]:
 
     def f(observation: np.ndarray) -> np.ndarray:
         obs = torch.tensor(observation, device=model.device)
-        batched = len(obs.shape) == 4
-        if not batched:
+        batched = len(obs.shape) == 4 and obs.shape[0] > 1
+        if not batched and len(obs.shape) < 4:
             obs.unsqueeze_(0)
         obs.swapdims_(1, 3).swapdims_(2, 3)
 
