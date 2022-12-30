@@ -189,7 +189,7 @@ if __name__ == "__main__":
         config["seed"] = seed
 
     model = DQN("MlpPolicy", train_env, **config)
-    model = model.load(model_path)
+    model = model.load(model_path, buffer_size=0)
 
     from polext.interaction_helper import vec_interact
 
