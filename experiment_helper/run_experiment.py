@@ -127,6 +127,13 @@ def union(data: dict, score_dict: dict) -> None:
             data[key] = value
 
 
+def has_key_for_seed(score_dict: dict, method: str, seed: int) -> bool:
+    if method not in score_dict:
+        return False
+    scores = score_dict[method]
+    return str(seed) in scores
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -220,11 +227,15 @@ if __name__ == "__main__":
         # This part is recoverable from files
         pbar.set_postfix_str("RL training")
         train_base_dqn(env_id, seed)
-        pbar.set_postfix_str("discrete RL training")
-        train_discrete_dqn(env_path, seed)
-        pbar.set_postfix_str("discrete RL eval")
-        score_dict = eval_discrete_dqn(env_path, seed, episodes, nenvs)
-        union(all_data, score_dict)
+        if not has_key_for_seed(all_data, "discrete_dqn", seed):
+            pbar.set_postfix_str("discrete RL training")
+            train_discrete_dqn(env_path, seed)
+            pbar.set_postfix_str("discrete RL eval")
+            score_dict = eval_discrete_dqn(env_path, seed, episodes, nenvs)
+            union(all_data, score_dict)
+            # Save
+            with open(output, "w") as fd:
+                json.dump(all_data, fd)
         for depth in depths:
             pbar.set_postfix_str(f"Trees d={depth}")
             score_dict = run_trees(
