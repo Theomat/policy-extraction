@@ -48,7 +48,7 @@ class QValuesLearner:
         return Qvalues / self.visits.get(state, 0)
 
     def __getitem__(self, state: Tuple[int, ...]) -> Optional[np.ndarray]:
-        return self.state_normalised_Q(state)
+        return self.state_Q(state)
 
     def reset_Q(self):
         self.Qtable = {s: Q * 0 for s, Q in self.Qtable.items()}
@@ -97,3 +97,5 @@ class QValuesLearner:
                 self.Qtable[state] = value / visits
                 self.visits[state] = visits
                 self._total_visits += visits
+
+        self.normalised = True
