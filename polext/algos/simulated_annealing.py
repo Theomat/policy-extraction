@@ -8,6 +8,8 @@ import numpy as np
 from polext.decision_tree import DecisionTree, Node, Leaf
 from polext.predicate import Predicate
 from polext.predicate_space import PredicateSpace
+from polext.q_values_learner import QValuesLearner
+from polext.tree_builder import register, TreeBuildingAlgo, tree_loss
 
 S = TypeVar("S")
 
@@ -87,7 +89,6 @@ def __real_to_zero_one__(x: float) -> float:
 
 
 def simulated_annealing_tree_builder(
-    loss,
     probability_swap: float,
     beta: float,
     temperature: float,
@@ -95,7 +96,11 @@ def simulated_annealing_tree_builder(
     tries_factor: int,
 ):
     def f(
-        space: PredicateSpace[S], max_depth: int, seed: int, **kwargs
+        space: PredicateSpace[S],
+        Qtable: QValuesLearner,
+        max_depth: int,
+        seed: int,
+        **kwargs
     ) -> DecisionTree[S]:
         gen = random.Random(seed)
 
@@ -105,7 +110,7 @@ def simulated_annealing_tree_builder(
         leaves = 1
         nodes = 0
         temp = temperature
-        best_loss = __real_to_zero_one__(loss(tree, space))
+        best_loss = __real_to_zero_one__(tree_loss(tree, space, Qtable))
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             for step in range(tries):
@@ -115,11 +120,11 @@ def simulated_annealing_tree_builder(
                     nodes,
                     gen,
                     space.predicates_set,
-                    space.nactions,
+                    Qtable.nactions,
                     max_depth,
                     probability_swap,
                 )
-                n_loss = __real_to_zero_one__(loss(neighbour, space))
+                n_loss = __real_to_zero_one__(tree_loss(tree, space, Qtable))
                 keep_prob = min(1, np.exp(beta * (n_loss - best_loss) / temp))
                 if gen.random() <= keep_prob:
                     tree = neighbour
@@ -132,3 +137,8 @@ def simulated_annealing_tree_builder(
         return tree
 
     return f
+
+
+register(
+    TreeBuildingAlgo("sa", simulated_annealing_tree_builder(0.5, 200, 100, 0.2, 100))
+)
