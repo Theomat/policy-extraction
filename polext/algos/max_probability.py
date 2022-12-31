@@ -55,9 +55,9 @@ def __compute_score__(
     for s in space.seen:
         a = Qmax[s]
         if s in sub_states:
-            score += part_classes[a] / tpart * Qtable[s][Qmax[s]]
+            score += part_classes[a] / tpart * Qtable[s][a]
         else:
-            score += not_part_classes[a] / tnpart * Qtable[s][Qmax[s]]
+            score += not_part_classes[a] / tnpart * Qtable[s][a]
     return score
 
 
