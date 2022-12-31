@@ -191,12 +191,6 @@ if __name__ == "__main__":
     eval_fn = vec_eval_policy
     loss = tree_loss
     base_builder = build_tree
-    # TODO:
-    # if ntrees > 1:
-    #     base_builder = lambda *args, **kwargs: build_forest(
-    #         *args, trees=ntrees, **kwargs
-    #     )
-    #     loss = forest_loss
     builder = lambda *args, **kwargs: base_builder(
         *args,
         Qfun=Q,
@@ -204,6 +198,7 @@ if __name__ == "__main__":
         nenvs=nenvs,
         episodes=episodes,
         iterations=iterations,
+        trees=ntrees,
         **kwargs,
     )
 

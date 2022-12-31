@@ -4,6 +4,7 @@ from typing import Callable, Generator, List, Optional, Tuple, TypeVar
 import numpy as np
 
 from polext.decision_tree import DecisionTree
+from polext.forest import Forest
 from polext.predicate_space import PredicateSpace
 from polext.q_values_learner import QValuesLearner
 from polext.interaction_helper import (
@@ -135,6 +136,28 @@ def __iterate__(
         yield x
 
 
+def __forest__(
+    builder: Callable[[PredicateSpace[S], QValuesLearner, int, int], DecisionTree[S]],
+    ntrees: int,
+) -> Callable[[PredicateSpace[S], QValuesLearner, int, int], Forest[S]]:
+    def f(
+        space: PredicateSpace[S],
+        qtable: QValuesLearner,
+        max_depth: int,
+        seed: int,
+        **kwargs,
+    ):
+        gen = space.random_splits(seed)
+        return Forest(
+            [
+                builder(next(gen), qtable, max_depth, seed=seed, **kwargs)
+                for _ in range(ntrees)
+            ]
+        )
+
+    return f
+
+
 def build_tree(
     space: PredicateSpace[S],
     qtable: QValuesLearner,
@@ -143,13 +166,15 @@ def build_tree(
     Qfun: Callable[[S], np.ndarray],
     env_fn: Callable,
     nenvs: int,
-    iterations: int = 0,
+    iterations: int = 1,
     episodes: int = 0,
+    trees: int = 1,
     seed: Optional[int] = None,
     **kwargs,
 ) -> Generator[Tuple[DecisionTree[S], Tuple[float, float]], None, None]:
+    basic_tree = __TREE_BUILDING_ALGOS__[method.lower().strip()].method
     return __iterate__(
-        __TREE_BUILDING_ALGOS__[method.lower().strip()].method,
+        basic_tree if trees <= 1 else __forest__(basic_tree, trees),
         space,
         qtable,
         max_depth,
