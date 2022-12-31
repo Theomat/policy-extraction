@@ -55,12 +55,13 @@ def run_method(
             file=sys.stderr,
         )
         return
-    out = builder(space, Qtable, max_depth, method, seed=seed)
-    for i, val in enumerate(out):
+    i = 0
+    for val in builder(space, Qtable, max_depth, method, seed=seed):
         print("Method:", Text.assemble((method, "bold")), f"iteration {i+1}")
         tree = callback(val)
         if isinstance(tree, DecisionTree):
             tree.print()
+        i += 1
     print()
 
 

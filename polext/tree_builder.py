@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Tuple, TypeVar
+from typing import Callable, Generator, List, Optional, Tuple, TypeVar
 
 import numpy as np
 
@@ -59,17 +59,15 @@ def __iterate__(
     episodes: int = 0,
     seed: Optional[int] = None,
     **kwargs,
-) -> List[Tuple[Callable[[S], int], Tuple[float, float]]]:
+) -> Generator[Tuple[Callable[[S], int], Tuple[float, float]], None, None]:
     tree = builder(space, qtable, max_depth, seed=seed, **kwargs)
     if iterations <= 1:
-        return [
-            (
-                tree,
-                vec_eval_policy(
-                    tree, episodes, env_fn, nenvs, qtable.nactions, seed=seed
-                ),
-            )
-        ]
+        yield (
+            tree,
+            vec_eval_policy(tree, episodes, env_fn, nenvs, qtable.nactions, seed=seed),
+        )
+        return
+
     next_qtable = QValuesLearner()
     new_space = PredicateSpace(space.predicates)
 
@@ -97,6 +95,7 @@ def __iterate__(
         seed=seed,
     )
     mu, std = np.mean(total_rewards), 2 * np.std(total_rewards)
+    yield (tree, (mu, std))  # type: ignore
 
     # Learning Q_Value in predicate space
     mean_length = np.mean(episodes_length)
@@ -115,7 +114,7 @@ def __iterate__(
         value = next_qtable.state_normalised_Q(new_space.get_representative(state))
         return value if value is not None else Qfun(state)
 
-    next_results = __iterate__(
+    for x in __iterate__(
         builder,
         new_space,
         next_qtable,
@@ -128,8 +127,8 @@ def __iterate__(
         seed=seed,
         episodes=episodes,
         **kwargs,
-    )
-    return [(tree, (mu, std))] + next_results  # type: ignore
+    ):
+        yield x
 
 
 def build_tree(
@@ -144,7 +143,7 @@ def build_tree(
     episodes: int = 0,
     seed: Optional[int] = None,
     **kwargs,
-) -> List[Tuple[DecisionTree[S], Tuple[float, float]]]:
+) -> Generator[Tuple[DecisionTree[S], Tuple[float, float]], None, None]:
     return __iterate__(
         __TREE_BUILDING_ALGOS__[method.lower().strip()].method,
         space,
