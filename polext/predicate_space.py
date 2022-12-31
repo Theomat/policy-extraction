@@ -22,7 +22,7 @@ class PredicateSpace(Generic[S]):
         if save and repres not in self.seen:
             self.seen.add(repres)
             for i, p in enumerate(self.predicates):
-                if repres[i] == 1:
+                if repres[i]:
                     self.predicates_set[p].add(repres)
         return repres
 
@@ -41,7 +41,7 @@ class PredicateSpace(Generic[S]):
         for elem in self.seen:
             target = positive if elem[index] == 1 else negative
             for i, p in enumerate(self.predicates):
-                if elem[i] == 1:
+                if elem[i]:
                     target.predicates_set[p].add(elem)
             target.seen.add(elem)
         return positive, negative
