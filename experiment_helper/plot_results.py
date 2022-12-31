@@ -87,7 +87,7 @@ if __name__ == "__main__":
             depths.append(depth)
             iterations.append(iteration)
 
-    iterations = sorted(iterations)
+    iterations = sorted(x for x in iterations if x > 0)
     depths = sorted(depths)
 
     # Load ALE scores as a dictionary mapping algorithms to their human normalized
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     for method, x in score_dict.items():
         if "-d=" in method and "-it=" in method:
             iteration = int(method[method.find("-it=") + 4 :])
-            if iteration == iterations[-1]:
+            if iteration == iterations[0]:
                 new_dict[method.replace(f"-it={iteration}", "")] = x
         else:
             new_dict[method] = x
@@ -141,11 +141,15 @@ if __name__ == "__main__":
     compared_dict = {}
     dqn_perf = score_dict["dqn"]
     compared_dict["discrete-dqn,dqn"] = (score_dict["discrete-dqn"], dqn_perf)
+    best_score = {}
     for name in variants:
         if name == "dqn":
             continue
-        score = score_dict[f"{name}-d={depths[-1]}-it={iterations[-1]}"]
-        compared_dict[f"{name},dqn"] = (score, dqn_perf)
+        all_scores = [score_dict[f"{name}-d={depths[-1]}-it={it}"] for it in iterations]
+        some_list = [(np.mean(s), -np.std(s), i) for i, s in enumerate(all_scores)]
+        some_list = sorted(some_list)
+        best_score[name] = all_scores[some_list[-1][2]]
+        compared_dict[f"{name},dqn"] = (best_score[name], dqn_perf)
 
     average_probabilities, average_prob_cis = rly.get_interval_estimates(
         compared_dict, metrics.probability_of_improvement, reps=1000
@@ -165,8 +169,7 @@ if __name__ == "__main__":
     for name in variants:
         if name == "dqn":
             continue
-        score = score_dict[f"{name}-d={depths[-1]}-it={iterations[-1]}"]
-        compared_dict[f"{name},discrete-dqn"] = (score, discrete_dqn_perf)
+        compared_dict[f"{name},discrete-dqn"] = (best_score[name], discrete_dqn_perf)
 
     average_probabilities, average_prob_cis = rly.get_interval_estimates(
         compared_dict, metrics.probability_of_improvement, reps=1000
