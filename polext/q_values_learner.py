@@ -14,7 +14,7 @@ class QValuesLearner:
         self.normalised = False
         self._total_visits = 0
 
-    def add_one_visit(self, state: Tuple[int, ...], Q_values: np.ndarray):
+    def add_one_visit(self, state: Tuple[bool, ...], Q_values: np.ndarray):
         if self.nactions < 0:
             self.nactions = Q_values.shape[0]
         self._total_visits += 1
@@ -25,16 +25,16 @@ class QValuesLearner:
         self.visits[state] += 1
         self.Qtable[state] += (Q_values - self.Qtable[state]) / self.visits[state]
 
-    def state_probability(self, state: Tuple[int, ...]) -> float:
+    def state_probability(self, state: Tuple[bool, ...]) -> float:
         return self.visits.get(state, 0) / max(1, self._total_visits)
 
-    def state_visits(self, state: Tuple[int, ...]) -> int:
+    def state_visits(self, state: Tuple[bool, ...]) -> int:
         return self.visits.get(state, 0)
 
-    def state_Q(self, state: Tuple[int, ...]) -> Optional[np.ndarray]:
+    def state_Q(self, state: Tuple[bool, ...]) -> Optional[np.ndarray]:
         return self[state]
 
-    def state_normalised_Q(self, state: Tuple[int, ...]) -> Optional[np.ndarray]:
+    def state_normalised_Q(self, state: Tuple[bool, ...]) -> Optional[np.ndarray]:
         Qvalues = self.Qtable.get(state, None)
         if Qvalues is None:
             return None
@@ -42,7 +42,7 @@ class QValuesLearner:
             return Qvalues
         return Qvalues / self.visits[state]
 
-    def __getitem__(self, state: Tuple[int, ...]) -> Optional[np.ndarray]:
+    def __getitem__(self, state: Tuple[bool, ...]) -> Optional[np.ndarray]:
         Qvalues = self.Qtable.get(state, None)
         if Qvalues is None:
             return None

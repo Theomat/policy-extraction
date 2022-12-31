@@ -17,7 +17,7 @@ class PredicateSpace(Generic[S]):
         self.predicates_set = {p: set() for p in self.predicates}
         self.seen = set()
 
-    def get_representative(self, state: S, save: bool = True) -> Tuple[int, ...]:
+    def get_representative(self, state: S, save: bool = True) -> Tuple[bool, ...]:
         repres = tuple(p(state) for p in self.predicates)
         if save and repres not in self.seen:
             self.seen.add(repres)
@@ -26,7 +26,7 @@ class PredicateSpace(Generic[S]):
                     self.predicates_set[p].add(repres)
         return repres
 
-    def states_seen(self) -> Set[Tuple[int, ...]]:
+    def states_seen(self) -> Set[Tuple[bool, ...]]:
         return self.seen
 
     def reset(self) -> None:
