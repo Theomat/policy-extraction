@@ -91,10 +91,10 @@ class QValuesLearner:
             self._total_visits += visits
 
         # Copy missing from our dict
-        for state, value in other.Qtable.items():
+        for state in other.Qtable:
             if state not in self.Qtable:
                 visits = other.visits[state]
-                self.Qtable[state] = value / visits
+                self.Qtable[state] = other.state_normalised_Q(state)
                 self.visits[state] = visits
                 self._total_visits += visits
 
