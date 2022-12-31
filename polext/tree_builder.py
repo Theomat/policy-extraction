@@ -57,8 +57,12 @@ def __iterate__(
     tree = builder(space, qtable, max_depth, seed=seed, **kwargs)
     if iterations <= 1:
         return [
-            tree,
-            vec_eval_policy(tree, episodes, env_fn, nenvs, qtable.nactions, seed=seed),
+            (
+                tree,
+                vec_eval_policy(
+                    tree, episodes, env_fn, nenvs, qtable.nactions, seed=seed
+                ),
+            )
         ]
     next_qtable = QValuesLearner()
 
