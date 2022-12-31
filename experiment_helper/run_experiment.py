@@ -138,10 +138,13 @@ def has_key_for_depth_for_seed(score_dict: dict, depth: int, seed: int) -> bool:
     keys = list(score_dict.keys())
     relevant = set()
     for key in keys:
-        if "-d=" in key and "-it=" in key:
+        if isinstance(key, str) and "-d=" in key and "-it=" in key:
             mdepth = int(key[key.find("-d=") + 3 : key.find("-it=")])
             relevant.add(key.replace(f"-d={mdepth}", f"-d={depth}"))
-    return all(has_key_for_seed(score_dict, key, seed) for key in relevant)
+    return (
+        all(has_key_for_seed(score_dict, key, seed) for key in relevant)
+        and len(relevant) > 0
+    )
 
 
 if __name__ == "__main__":
@@ -237,7 +240,7 @@ if __name__ == "__main__":
         # This part is recoverable from files
         pbar.set_postfix_str("RL training")
         train_base_dqn(env_id, seed)
-        if not has_key_for_seed(all_data, "discrete_dqn", seed):
+        if not has_key_for_seed(all_data, "discrete-dqn", seed):
             pbar.set_postfix_str("discrete RL training")
             train_discrete_dqn(env_path, seed)
             pbar.set_postfix_str("discrete RL eval")
