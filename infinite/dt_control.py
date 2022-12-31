@@ -4,6 +4,7 @@ import numpy as np
 
 from polext.predicate_space import PredicateSpace
 from polext.interaction_helper import vec_interact
+from polext.q_values_learner import QValuesLearner
 
 
 if __name__ == "__main__":
@@ -61,7 +62,8 @@ if __name__ == "__main__":
     env_fn = module.__getattribute__("make_env")
     Q = Q_builder(model_path)
 
-    space = PredicateSpace(predicates, True)
+    space = PredicateSpace(predicates)
+    Qtable = QValuesLearner()
     # Empirical evaluation of Q-values
     def my_step(
         val: float,
@@ -72,11 +74,12 @@ if __name__ == "__main__":
         stp1: np.ndarray,
         done: bool,
     ) -> float:
-        space.visit_state(state, Qvalues)
+        s = space.get_representative(state)
+        Qtable.add_one_visit(s, Qvalues)
         return val + r
 
     rewards = vec_interact(Q, episodes, env_fn, nenvs, my_step, 0, seed)
-    eq_states = space.predicates_states()
+    eq_states = space.states_seen()
 
     with open(output, "w") as fd:
         fd.write("#NON-PERMISSIVE\n")
@@ -84,7 +87,7 @@ if __name__ == "__main__":
         fd.write(f"#BEGIN {N} 1\n")
         lines = []
         for state in eq_states:
-            q_values: np.ndarray = space.predicate_state_Q(state)
+            q_values: np.ndarray = Qtable[state]
             action = np.argmax(q_values)
             line = ",".join(map(str, state)) + "," + str(action) + "\n"
             lines.append(line)
