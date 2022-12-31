@@ -69,6 +69,7 @@ def __iterate__(
             )
         ]
     next_qtable = QValuesLearner()
+    new_space = PredicateSpace(space.predicates)
 
     replay_buffer = []
     episodes_length = [0 for _ in range(episodes)]
@@ -78,7 +79,7 @@ def __iterate__(
     ) -> float:
         episodes_length[ep] += 1
         qq = Qfun(st)
-        ps = space.get_representative(st)
+        ps = new_space.get_representative(st)
         next_qtable.add_one_visit(ps, qq)
         action = np.argmax(Qval)
         replay_buffer.append((ps, action, r, space.get_representative(stp1), done))
@@ -95,6 +96,7 @@ def __iterate__(
     )
     mu, std = np.mean(total_rewards), 2 * np.std(total_rewards)
 
+    # Learning Q_Value in predicate space
     mean_length = np.mean(episodes_length)
     gamma = np.float_power(0.01, 1.0 / mean_length)
 
@@ -104,15 +106,16 @@ def __iterate__(
         alpha = 1.0 / next_qtable.state_visits(st)
         next_qtable.learn_qvalues(st, action, r, stp1, done, alpha, gamma)
 
+    # Mix the two Qtables
     next_qtable.mix_with(qtable, 0.5)
 
     def next_Q(state: S) -> np.ndarray:
-        value = next_qtable.state_normalised_Q(space.get_representative(state))
+        value = next_qtable.state_normalised_Q(new_space.get_representative(state))
         return value if value is not None else Qfun(state)
 
     next_results = __iterate__(
         builder,
-        space,
+        new_space,
         next_qtable,
         max_depth,
         method,
@@ -124,8 +127,7 @@ def __iterate__(
         episodes=episodes,
         **kwargs,
     )
-    return [tree, (mu, std)] + next_results
-
+    return [(tree, (mu, std))] + next_results # type: ignore
 
 def build_tree(
     space: PredicateSpace[S],
@@ -153,4 +155,4 @@ def build_tree(
         episodes,
         seed,
         **kwargs,
-    )
+    )  # type: ignore
