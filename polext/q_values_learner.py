@@ -80,11 +80,11 @@ class QValuesLearner:
         self._total_visits = 0
         # Merge
         for state in list(self.Qtable.keys()):
-            out = self.state_normalised_Q(state) * (1 - coefficient)
+            out = self.state_normalised_Q(state)
             visits = self.state_visits(state) * (1 - coefficient)
             other_q = other.state_normalised_Q(state)
             if other_q is not None:
-                out += coefficient * other_q
+                out = out * (1 - coefficient) + coefficient * other_q
                 visits += coefficient * other.visits[state]
             self.Qtable[state] = out
             self.visits[state] = visits
