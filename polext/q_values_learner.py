@@ -31,24 +31,24 @@ class QValuesLearner:
     def state_visits(self, state: Tuple[bool, ...]) -> int:
         return self.visits.get(state, 0)
 
-    def state_Q(self, state: Tuple[bool, ...]) -> Optional[np.ndarray]:
+    def state_normalised_Q(self, state: Tuple[bool, ...]) -> Optional[np.ndarray]:
         return self[state]
 
-    def state_normalised_Q(self, state: Tuple[bool, ...]) -> Optional[np.ndarray]:
-        Qvalues = self.Qtable.get(state, None)
-        if Qvalues is None:
-            return None
-        if self.normalised:
-            return Qvalues
-        return Qvalues / self.visits[state]
-
-    def __getitem__(self, state: Tuple[bool, ...]) -> Optional[np.ndarray]:
+    def state_Q(self, state: Tuple[bool, ...]) -> Optional[np.ndarray]:
         Qvalues = self.Qtable.get(state, None)
         if Qvalues is None:
             return None
         if self.normalised:
             return Qvalues * self.visits[state]
         return Qvalues
+
+    def __getitem__(self, state: Tuple[bool, ...]) -> Optional[np.ndarray]:
+        Qvalues = self.Qtable.get(state, None)
+        if Qvalues is None:
+            return None
+        if self.normalised:
+            return Qvalues
+        return Qvalues / self.visits[state]
 
     def reset_Q(self):
         self.Qtable = {s: Q * 0 for s, Q in self.Qtable.items()}
