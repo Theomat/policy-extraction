@@ -86,15 +86,11 @@ def __builder__(
 
     # Compute current score
     best_predicate = None
-    best_score = __compute_score__(
-        space, Qtable, space.seen, depth_left, Qmax, classes
-    )
+    best_score = __compute_score__(space, Qtable, space.seen, depth_left, Qmax, classes)
 
     for candidate, sub_states in space.predicates_set.items():
 
-        score = __compute_score__(
-            space, Qtable, sub_states, depth_left, Qmax, classes
-        )
+        score = __compute_score__(space, Qtable, sub_states, depth_left, Qmax, classes)
         if score > best_score:
             best_score = score
             best_predicate = candidate
