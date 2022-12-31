@@ -1,9 +1,10 @@
-from typing import Dict, Set, TypeVar
+from typing import Dict, Optional, Set, TypeVar
 
 import numpy as np
 
 from polext.decision_tree import DecisionTree, Node
 from polext.algos.greedy import greedy_finisher
+from polext.predicate import Predicate
 from polext.predicate_space import PredicateSpace
 from polext.q_values_learner import QValuesLearner
 from polext.tree_builder import register, TreeBuildingAlgo
@@ -32,23 +33,23 @@ register(TreeBuildingAlgo("entropy", entropy_tree_builder))
 def __compute_score__(
     space: PredicateSpace[S],
     Qtable: QValuesLearner,
-    sub_states: Set[S],
+    candidate: Optional[Predicate[S]],
     classes: Dict[int, Set[S]],
 ) -> float:
     if len(space.seen) == 0:
         return 0
     score = 0
+    pos = space.seen if candidate is None else space.predicates_set[candidate]
+    neg = [] if candidate is None else list(space.predicate_set_complement(candidate))
     part_classes = {
-        action: sum(Qtable.state_probability(x) for x in sub_states)
-        / max(1, len(sub_states))
-        for action, _ in classes.items()
+        action: sum(Qtable.state_probability(s) for s in pos if s in sub)
+        / max(1, len(pos))
+        for action, sub in classes.items()
     }
     not_part_classes = {
-        action: sum(
-            Qtable.state_probability(s) for s in space.seen if s not in sub_states
-        )
-        / max(1, (len(space.seen) - len(sub_states)))
-        for action, _ in classes.items()
+        action: sum(Qtable.state_probability(s) for s in neg if s in sub)
+        / max(1, len(neg))
+        for action, sub in classes.items()
     }
     pos_entropy = 0
     neg_entropy = 0
@@ -57,10 +58,7 @@ def __compute_score__(
             pos_entropy += part_classes[a] * np.log2(part_classes[a])
         if not_part_classes[a] > 0:
             neg_entropy += not_part_classes[a] * np.log2(not_part_classes[a])
-    score = (
-        len(sub_states) / len(space.seen) * pos_entropy
-        + (1 - len(sub_states) / len(space.seen)) * neg_entropy
-    )
+    score = (len(pos) * pos_entropy + len(neg) * neg_entropy) / len(space.seen)
     return -score
 
 
@@ -77,11 +75,10 @@ def __builder__(
 
     # Compute current score
     best_predicate = None
-    best_score = __compute_score__(space, Qtable, space.seen, classes)
+    best_score = __compute_score__(space, Qtable, None, classes)
 
-    for candidate, sub_states in space.predicates_set.items():
-
-        score = __compute_score__(space, Qtable, sub_states, classes)
+    for candidate in space.unused_predicates():
+        score = __compute_score__(space, Qtable, candidate, classes)
         if score > best_score:
             best_score = score
             best_predicate = candidate
