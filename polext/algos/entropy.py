@@ -45,7 +45,7 @@ def __compute_score__(
     }
     not_part_classes = {
         action: sum(
-            Qtable.state_probability(x) for s in space.seen if s not in sub_states
+            Qtable.state_probability(s) for s in space.seen if s not in sub_states
         )
         / max(1, (len(space.seen) - len(sub_states)))
         for action, _ in classes.items()
