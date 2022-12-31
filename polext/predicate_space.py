@@ -39,7 +39,7 @@ class PredicateSpace(Generic[S]):
         positive = PredicateSpace(self.predicates)
         negative = PredicateSpace(self.predicates)
         for elem in self.seen:
-            target = positive if elem[index] == 1 else negative
+            target = positive if elem[index] else negative
             for i, p in enumerate(self.predicates):
                 if elem[i]:
                     target.predicates_set[p].add(elem)
