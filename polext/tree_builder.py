@@ -21,6 +21,8 @@ def tree_loss(
     regret = 0
     for s in space.seen:
         Qvals = Qtable.state_normalised_Q(s)
+        if Qvals is None:
+            continue
         regret += np.max(Qvals) - Qvals[tree(s)]
     return regret
 
@@ -127,7 +129,8 @@ def __iterate__(
         episodes=episodes,
         **kwargs,
     )
-    return [(tree, (mu, std))] + next_results # type: ignore
+    return [(tree, (mu, std))] + next_results  # type: ignore
+
 
 def build_tree(
     space: PredicateSpace[S],
