@@ -41,11 +41,11 @@ def __compute_score__(
 ) -> float:
     score = 0
     part_classes = {
-        action: sum(Qtable[s][Qmax[s]] for s in sub_states)
+        action: sum(Qtable[s][action] for s in sub_states)
         for action, sub in classes.items()
     }
     not_part_classes = {
-        action: sum(Qtable[s][Qmax[s]] for s in space.seen if s not in sub_states)
+        action: sum(Qtable[s][action] for s in space.seen if s not in sub_states)
         for action, sub in classes.items()
     }
     score = 0
