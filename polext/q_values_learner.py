@@ -32,12 +32,7 @@ class QValuesLearner:
         return self.visits.get(state, 0)
 
     def state_Q(self, state: Tuple[int, ...]) -> Optional[np.ndarray]:
-        Qvalues = self.Qtable.get(state, None)
-        if Qvalues is None:
-            return None
-        if self.normalised:
-            return Qvalues * self.visits[state]
-        return Qvalues
+        return self[state]
 
     def state_normalised_Q(self, state: Tuple[int, ...]) -> Optional[np.ndarray]:
         Qvalues = self.Qtable.get(state, None)
@@ -48,7 +43,12 @@ class QValuesLearner:
         return Qvalues / self.visits[state]
 
     def __getitem__(self, state: Tuple[int, ...]) -> Optional[np.ndarray]:
-        return self.state_Q(state)
+        Qvalues = self.Qtable.get(state, None)
+        if Qvalues is None:
+            return None
+        if self.normalised:
+            return Qvalues * self.visits[state]
+        return Qvalues
 
     def reset_Q(self):
         self.Qtable = {s: Q * 0 for s, Q in self.Qtable.items()}
@@ -81,7 +81,23 @@ class QValuesLearner:
         for state in list(self.Qtable.keys()):
             other_q = other.state_normalised_Q(state)
             if other_q is not None:
-                out = self.state_normalised_Q(state) * (1 - coefficient) + coefficient * other_q
-                self.Qtable[state] = out
+                out = (
+                    self.state_normalised_Q(state) * (1 - coefficient)
+                    + coefficient * other_q
+                )
+                if self.normalised:
+                    self.Qtable[state] = out
+                else:
+                    self.Qtable[state] = out * self.visits[state]
 
         self.normalised = True
+
+    def normalise(self) -> None:
+        if not self.normalised:
+            self.Qtable = {s: Q / self.visits[s] for s, Q in self.Qtable.items()}
+            self.normalised = True
+
+    def unnormalise(self) -> None:
+        if self.normalised:
+            self.Qtable = {s: Q * self.visits[s] for s, Q in self.Qtable.items()}
+            self.normalised = False
