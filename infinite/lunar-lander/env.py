@@ -44,23 +44,24 @@ def idx_from_name(name: str) -> int:
     return 999999
 
 
-def make_pair_pred(na: str, nb: str):
+def make_pair_pred(na: str, nb: str, nber: float):
     ai = idx_from_name(na)
     bi = idx_from_name(nb)
 
     def lower(s):
-        return s[ai] + s[bi] <= 0
+        return s[ai] + s[bi] <= -nber
 
     def higher(s):
-        return s[ai] + s[bi] >= 0
+        return s[ai] + s[bi] >= nber
 
     return lower, higher
 
 
 for na, nb in [("angle", "vangle"), ("x", "vx"), ("y", "vy")]:
-    lower, higher = make_pair_pred(na, nb)
-    predicates.append(Predicate(f"{na} + {nb} >= 0", higher))
-    predicates.append(Predicate(f"{na} + {nb} <= 0", lower))
+    for nbr in [0, 0.05, 0.1]:
+        lower, higher = make_pair_pred(na, nb, nbr)
+        predicates.append(Predicate(f"{na} + {nb} >= {nbr}", higher))
+        predicates.append(Predicate(f"{na} + {nb} <= {nbr}", lower))
 
 predicates.append(Predicate("has ground contact", lambda s: s[-1] + s[-2] >= 1))
 
