@@ -26,19 +26,20 @@ def greedy_finisher(
     return answer
 
 
-def greedy_tree_builder(fn):
+def greedy_tree_builder(fn, build_qmax: bool = False):
     def f(
         space: PredicateSpace[S], qtable: QValuesLearner, max_depth: int, **kwargs
     ) -> DecisionTree[S]:
         best = Leaf(0)
         best_loss = 1e99
+        Qmax = {}
+        if build_qmax:
+            for s in space.seen:
+                Qval = qtable[s]
+                Qmax[s] = np.max(Qval)
         for action in range(qtable.nactions):
             tree = __rec_tree__(
-                fn,
-                space,
-                qtable,
-                max_depth,
-                action,
+                fn, space, qtable, max_depth, action, Qmax=Qmax
             ).simplified()
             lost_reward = tree_loss(tree, space, qtable)
             if lost_reward < best_loss:
@@ -126,16 +127,12 @@ def greedy_opt_action_selection(
     Qtable: QValuesLearner,
     depth_left: int,
     previous_action: int,
+    Qmax: dict,
     **kwargs
 ) -> Tuple[Optional[Predicate[S]], int, int]:
     best_predicate = None
     best_action = previous_action
-    n_before = 0
-    Qmax = {}
-    for s in space.seen:
-        Qval = Qtable[s]
-        Qmax[s] = np.max(Qval)
-        n_before += Qmax[s] <= Qval[previous_action]
+    n_before = sum(Qmax[s] <= Qtable[s][previous_action] for s in space.seen)
     best_score = n_before
     for candidate, sub_states in space.predicates_set.items():
         # print("\tcandidate:", candidate)
@@ -161,6 +158,6 @@ def greedy_opt_action_selection(
 register(TreeBuildingAlgo("greedy-q", greedy_tree_builder(greedy_q_selection)))
 register(
     TreeBuildingAlgo(
-        "greedy-nactions", greedy_tree_builder(greedy_opt_action_selection)
+        "greedy-nactions", greedy_tree_builder(greedy_opt_action_selection, True)
     )
 )
