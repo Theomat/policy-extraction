@@ -82,7 +82,9 @@ def __iterate__(
         ps = new_space.get_representative(st)
         next_qtable.add_one_visit(ps, qq)
         action = np.argmax(Qval)
-        replay_buffer.append((ps, action, r, space.get_representative(stp1), done))
+        replay_buffer.append(
+            (ps, action, r, new_space.get_representative(stp1, False), done)
+        )
         return rew + r
 
     total_rewards = vec_interact(
@@ -111,7 +113,9 @@ def __iterate__(
     next_qtable.mix_with(qtable, 0.5)
 
     def next_Q(state: S) -> np.ndarray:
-        value = next_qtable.state_normalised_Q(new_space.get_representative(state))
+        value = next_qtable.state_normalised_Q(
+            new_space.get_representative(state, False)
+        )
         return value if value is not None else Qfun(state)
 
     for x in __iterate__(
