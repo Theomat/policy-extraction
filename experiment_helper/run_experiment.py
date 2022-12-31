@@ -73,12 +73,16 @@ def run_trees(
     )
     output = exec_cmd(cmd)
     method = "dqn"
+    iteration = -1
     data = {}
     for line in output.splitlines():
         if line.startswith("Method:"):
             method = line[len("Method:") :]
+            if "iteration" in method:
+                iteration = int(method.split("iteration")[1])
+                method = method[: method.index("iteration")].strip()
         elif "mean=" in line:
-            data[f"{method}-d={depth}-it={iterations}"] = {
+            data[f"{method}-d={depth}-it={iteration}"] = {
                 f"{seed}": extract_score(line)
             }
     return data
@@ -174,7 +178,7 @@ if __name__ == "__main__":
         "--iterations",
         type=str,
         default="1",
-        help="iterations to test 5-10=[5;10] 7,8={7,8}",
+        help="max number of iterations to test",
     )
 
     parameters = parser.parse_args()
@@ -184,9 +188,9 @@ if __name__ == "__main__":
     seeds: int = parameters.seeds
     nenvs: int = parameters.n
     output: str = parameters.output
+    iterations: int = parameters.iterations
 
     depths = parse_set(parameters.depths)
-    iterations = parse_set(parameters.iterations)
 
     env_path = find_env_path(env_name)
     env_id = find_env_id(env_path)
@@ -222,12 +226,11 @@ if __name__ == "__main__":
         score_dict = eval_discrete_dqn(env_path, seed, episodes, nenvs)
         union(all_data, score_dict)
         for depth in depths:
-            for iteration in iterations:
-                pbar.set_postfix_str(f"Trees d={depth} it={iteration}")
-                score_dict = run_trees(
-                    env_path, methods, seed, episodes, env_id, depth, iteration, nenvs
-                )
-                union(all_data, score_dict)
+            pbar.set_postfix_str(f"Trees d={depth}")
+            score_dict = run_trees(
+                env_path, methods, seed, episodes, env_id, depth, iterations, nenvs
+            )
+            union(all_data, score_dict)
         all_data[seed] = True
         # Save data periodically
         with open(output, "w") as fd:
