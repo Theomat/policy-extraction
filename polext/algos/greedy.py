@@ -130,9 +130,12 @@ def greedy_opt_action_selection(
 ) -> Tuple[Optional[Predicate[S]], int, int]:
     best_predicate = None
     best_action = previous_action
-    n_before = sum(
-        1 for s in space.seen if np.max(Qtable[s]) <= Qtable[s][previous_action]
-    )
+    n_before = 0
+    Qmax = {}
+    for s in space.seen:
+        Qval = Qtable[s]
+        Qmax[s] = np.max(Qval)
+        n_before += Qmax[s] <= Qval[previous_action]
     best_score = n_before
     for candidate, sub_states in space.predicates_set.items():
         # print("\tcandidate:", candidate)
@@ -140,15 +143,12 @@ def greedy_opt_action_selection(
         n_candidate = sum(
             1
             for s in space.seen
-            if s not in part and np.max(Qtable[s]) <= Qtable[s][previous_action]
+            if s not in part and Qmax[s] <= Qtable[s][previous_action]
         )
         for action in range(Qtable.nactions):
             if action == previous_action:
                 continue
-            n_after = (
-                sum(1 for s in part if max(Qtable[s]) <= Qtable[s][action])
-                + n_candidate
-            )
+            n_after = sum(1 for s in part if Qmax[s] <= Qtable[s][action]) + n_candidate
             score = n_after
             # print("\t\taction:", action, "score:", score)
             if score > best_score:
