@@ -33,6 +33,9 @@ class PredicateSpace(Generic[S]):
     def reset(self) -> None:
         self.seen = set()
 
+    def __iter__(self):
+        return self.seen.__iter__()
+
     def split(
         self, predicate: Predicate
     ) -> "Tuple[PredicateSpace[S], PredicateSpace[S]]":
