@@ -1,11 +1,12 @@
 from typing import (
+    Generator,
     Generic,
     Iterable,
     Set,
     Tuple,
     TypeVar,
 )
-
+import numpy as np
 from polext.predicate import Predicate
 
 S = TypeVar("S")
@@ -45,3 +46,17 @@ class PredicateSpace(Generic[S]):
                     target.predicates_set[p].add(elem)
             target.seen.add(elem)
         return positive, negative
+
+    def random_splits(self, seed: int) -> "Generator[PredicateSpace[S], None, None]":
+        states = list(self.seen)
+        sample_size = int(np.floor(np.sqrt(len(states))))
+        rng = np.random.default_rng(seed)
+        while True:
+            sub_space = PredicateSpace(self.predicates)
+            sub_space.seen = set(rng.choice(states, size=sample_size, replace=False))
+            # Update predicates_set
+            sub_space.predicates_set = {
+                p: a.intersection(sub_space.seen)
+                for p, a in self.predicates_set.items()
+            }
+            yield sub_space
