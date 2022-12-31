@@ -18,7 +18,11 @@ S = TypeVar("S")
 def tree_loss(
     tree: DecisionTree[S], space: PredicateSpace[S], Qtable: QValuesLearner
 ) -> float:
-    return sum(np.max(Qtable[s]) - Qtable[s][tree(s)] for s in space.seen)
+    regret = 0
+    for s in space.seen:
+        Qvals = Qtable.state_normalised_Q(s)
+        regret += np.max(Qvals) - Qvals[tree(s)]
+    return regret
 
 
 @dataclass
