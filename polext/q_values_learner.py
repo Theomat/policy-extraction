@@ -93,7 +93,7 @@ class QValuesLearner:
         # Copy missing from our dict
         for state, value in other.Qtable.items():
             if state not in self.Qtable:
-                self.Qtable[state] = value
                 visits = other.visits[state]
+                self.Qtable[state] = value / visits
                 self.visits[state] = visits
                 self._total_visits += visits
