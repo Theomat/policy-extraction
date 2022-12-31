@@ -18,6 +18,12 @@ class PredicateSpace(Generic[S]):
         self.predicate2int = {p: i for i, p in enumerate(self.predicates)}
         self.predicates_set = {p: set() for p in self.predicates}
         self.seen = set()
+        self.used = [False for _ in predicates]
+
+    def unused_predicates(self) -> Generator[Predicate[S], None, None]:
+        for pred, used in zip(self.predicates, self.used):
+            if not used:
+                yield pred
 
     def get_representative(self, state: S, save: bool = True) -> Tuple[bool, ...]:
         repres = tuple(p(state) for p in self.predicates)
@@ -50,7 +56,10 @@ class PredicateSpace(Generic[S]):
     ) -> "Tuple[PredicateSpace[S], PredicateSpace[S]]":
         index = self.predicates.index(predicate)
         positive = PredicateSpace(self.predicates)
+        positive.used = self.used[:]
+        positive.used[index] = True
         negative = PredicateSpace(self.predicates)
+        negative.used = positive.used[:]
         for elem in self.seen:
             target = positive if elem[index] else negative
             for i, p in enumerate(self.predicates):
