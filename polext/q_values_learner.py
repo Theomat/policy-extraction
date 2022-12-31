@@ -45,7 +45,7 @@ class QValuesLearner:
             return None
         if self.normalised:
             return Qvalues
-        return Qvalues / self.visits.get(state, 0)
+        return Qvalues / self.visits[state]
 
     def __getitem__(self, state: Tuple[int, ...]) -> Optional[np.ndarray]:
         return self.state_Q(state)
@@ -80,12 +80,12 @@ class QValuesLearner:
         self._total_visits = 0
         # Merge
         for state in list(self.Qtable.keys()):
-            out = self.state_normalised_Q(state)
-            visits = self.state_visits(state)
+            out = self.state_normalised_Q(state) * (1 - coefficient)
+            visits = self.state_visits(state) * (1 - coefficient)
             other_q = other.state_normalised_Q(state)
             if other_q is not None:
-                out = out * (1 - coefficient) + coefficient * other_q
-                visits = visits * (1 - coefficient) + coefficient * other.visits[state]
+                out += coefficient * other_q
+                visits += coefficient * other.visits[state]
             self.Qtable[state] = out
             self.visits[state] = visits
             self._total_visits += visits
@@ -95,7 +95,7 @@ class QValuesLearner:
             if state not in self.Qtable:
                 visits = other.visits[state]
                 self.Qtable[state] = other.state_normalised_Q(state)
-                self.visits[state] = visits
-                self._total_visits += visits
+                self.visits[state] = visits * coefficient
+                self._total_visits += visits * coefficient
 
         self.normalised = True
