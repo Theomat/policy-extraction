@@ -134,6 +134,16 @@ def has_key_for_seed(score_dict: dict, method: str, seed: int) -> bool:
     return str(seed) in scores
 
 
+def has_key_for_depth_for_seed(score_dict: dict, depth: int, seed: int) -> bool:
+    keys = list(score_dict.keys())
+    relevant = set()
+    for key in keys:
+        if "-d=" in key and "-it=" in key:
+            mdepth = int(key[key.find("-d=") + 3 : key.find("-it=")])
+            relevant.add(key.replace(f"-d={mdepth}", f"-d={depth}"))
+    return all(has_key_for_seed(score_dict, key, seed) for key in relevant)
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -237,11 +247,16 @@ if __name__ == "__main__":
             with open(output, "w") as fd:
                 json.dump(all_data, fd)
         for depth in depths:
+            if has_key_for_depth_for_seed(all_data, depth, seed):
+                continue
             pbar.set_postfix_str(f"Trees d={depth}")
             score_dict = run_trees(
                 env_path, methods, seed, episodes, env_id, depth, iterations, nenvs
             )
             union(all_data, score_dict)
+            # Save
+            with open(output, "w") as fd:
+                json.dump(all_data, fd)
         all_data[seed] = True
         # Save data periodically
         with open(output, "w") as fd:
