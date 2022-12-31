@@ -15,6 +15,7 @@ S = TypeVar("S")
 class PredicateSpace(Generic[S]):
     def __init__(self, predicates: Iterable[Predicate[S]]) -> None:
         self.predicates = list(predicates)
+        self.predicate2int = {p: i for i, p in enumerate(self.predicates)}
         self.predicates_set = {p: set() for p in self.predicates}
         self.seen = set()
 
@@ -35,6 +36,14 @@ class PredicateSpace(Generic[S]):
 
     def __iter__(self):
         return self.seen.__iter__()
+
+    def predicate_set_complement(
+        self, predicate: Predicate[S]
+    ) -> Generator[Tuple[bool, ...], None, None]:
+        idx = self.predicate2int[predicate]
+        for s in self.seen:
+            if not s[idx]:
+                yield s
 
     def split(
         self, predicate: Predicate
