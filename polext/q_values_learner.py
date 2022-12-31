@@ -77,25 +77,11 @@ class QValuesLearner:
         self.normalised = True
 
     def mix_with(self, other: "QValuesLearner", coefficient: float) -> None:
-        self._total_visits = 0
         # Merge
         for state in list(self.Qtable.keys()):
-            out = self.state_normalised_Q(state)
-            visits = self.state_visits(state) * (1 - coefficient)
             other_q = other.state_normalised_Q(state)
             if other_q is not None:
-                out = out * (1 - coefficient) + coefficient * other_q
-                visits += coefficient * other.visits[state]
-            self.Qtable[state] = out
-            self.visits[state] = visits
-            self._total_visits += visits
-
-        # Copy missing from our dict
-        for state in other.Qtable:
-            if state not in self.Qtable:
-                visits = other.visits[state]
-                self.Qtable[state] = other.state_normalised_Q(state)
-                self.visits[state] = visits * coefficient
-                self._total_visits += visits * coefficient
+                out = self.state_normalised_Q(state) * (1 - coefficient) + coefficient * other_q
+                self.Qtable[state] = out
 
         self.normalised = True
