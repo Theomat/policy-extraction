@@ -36,12 +36,11 @@ class PredicateSpace(Generic[S]):
         self, predicate: Predicate
     ) -> "Tuple[PredicateSpace[S], PredicateSpace[S]]":
         index = self.predicates.index(predicate)
-        new_predicates = self.predicates[:]
-        positive = PredicateSpace(new_predicates)
-        negative = PredicateSpace(new_predicates)
+        positive = PredicateSpace(self.predicates)
+        negative = PredicateSpace(self.predicates)
         for elem in self.seen:
             target = positive if elem[index] == 1 else negative
-            for i, p in enumerate(new_predicates):
+            for i, p in enumerate(self.predicates):
                 if elem[i] == 1:
                     target.predicates_set[p].add(elem)
             target.seen.add(elem)
