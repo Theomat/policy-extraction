@@ -90,8 +90,6 @@ class QValuesLearner:
                 else:
                     self.Qtable[state] = out * self.visits[state]
 
-        self.normalised = True
-
     def normalise(self) -> None:
         if not self.normalised:
             self.Qtable = {s: Q / self.visits[s] for s, Q in self.Qtable.items()}
