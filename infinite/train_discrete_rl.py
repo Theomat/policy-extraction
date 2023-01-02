@@ -161,8 +161,10 @@ if __name__ == "__main__":
     if seed is not None:
         config["seed"] = seed
 
-    del config["env_wrapper"]
-    del config["frame_stack"]
+    if "env_wrapper" in config:
+        del config["env_wrapper"]
+    if "frame_stack" in config:
+        del config["frame_stack"]
 
     model = DQN("MlpPolicy", train_env, **config)
     model.learn(
