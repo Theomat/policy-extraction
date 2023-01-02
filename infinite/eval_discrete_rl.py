@@ -154,7 +154,7 @@ if __name__ == "__main__":
             def __init__(self, venv: VecEnv) -> None:
                 super().__init__(
                     venv,
-                    observation_space=MultiBinary([venv.num_envs, len(predicates)]),
+                    observation_space=MultiBinary(len(predicates)),
                 )
 
             def step_wait(self) -> VecEnvStepReturn:
