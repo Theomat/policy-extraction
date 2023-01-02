@@ -151,20 +151,27 @@ if __name__ == "__main__":
             :param env: the environment to wrap
             """
 
-            def __init__(self, env: VecEnv) -> None:
-                super().__init__(env)
-                self.observation_space = MultiBinary([env.num_envs, len(predicates)])
-
-            def step(self, action) -> Tuple[np.ndarray, float, bool, dict]:
-                obs, r, done, info = self.venv.step(action)
-                return np.array([wrap(s) for s in obs]), r, done, info
+            def __init__(self, venv: VecEnv) -> None:
+                super().__init__(
+                    venv,
+                    observation_space=MultiBinary([venv.num_envs, len(predicates)]),
+                )
 
             def step_wait(self) -> VecEnvStepReturn:
-                return self.venv.step_wait()
+                obs, r, dones, infos = self.venv.step_wait()
+                for i, done in enumerate(dones):
+                    if done:
+                        infos[i]["terminal_observation"] = wrap(
+                            infos[i]["terminal_observation"]
+                        )
+                return np.array([wrap(s) for s in obs]), r, dones, infos
 
             def reset(self) -> VecEnvObs:
                 obs = self.venv.reset()
                 return np.array([wrap(s) for s in obs])
+
+            def close(self) -> None:
+                return self.venv.close()
 
     else:
 
@@ -191,7 +198,6 @@ if __name__ == "__main__":
 
     del config["env_wrapper"]
     del config["frame_stack"]
-
 
     model = DQN("MlpPolicy", train_env, **config)
     model = model.load(model_path, buffer_size=0)
