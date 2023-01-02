@@ -40,6 +40,8 @@ def __compute_score__(
     Qmax: Dict[S, int],
     classes: Dict[int, Set[S]],
 ) -> float:
+    if len(space.seen) == 0:
+        return 0
     score = 0
     pos = space.seen if candidate is None else space.predicates_set[candidate]
     neg = [] if candidate is None else list(space.predicate_set_complement(candidate))
