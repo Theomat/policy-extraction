@@ -1,0 +1,1 @@
+python experiment_helper/run_experiment.py mountain-car all 50 --seeds 10 -o mountain-car.json --iterations 5 --depths 5,7,12
