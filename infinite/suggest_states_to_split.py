@@ -207,18 +207,33 @@ if __name__ == "__main__":
             return q_values[0]
 
     score = {}
-    states_visited = {}
+    good_states = {}
+    bad_states = {}
+    action = {}
 
     def step(b, episode_num: int, state, Qval, *args):
         wstate = wrap(state)
         if wstate not in score:
             score[wstate] = 0
-            states_visited[wstate] = []
-        score[wstate] += np.argmax(Qval) - np.argmax(qfun(np.array(wstate)))
-        states_visited[wstate].append(tuple(state))
+            good_states[wstate] = []
+            bad_states[wstate] = []
+        best = np.argmax(Qval)
+        if action.get(wstate, best + 1) == best:
+            good_states[wstate].append(state)
+            return b
+
+        qdis = qfun(np.array(wstate))
+        chosen = np.argmax(qdis)
+        action[wstate] = chosen
+        if best == chosen:
+            good_states[wstate].append(state)
+            return b
+        regret = Qval[best] - qdis[chosen]
+        score[wstate] += regret
+        bad_states[wstate].append((regret, best, tuple(state)))
         return b
 
-    total_rewards = vec_interact(
+    vec_interact(
         Qfun,
         episodes,
         env_fn,
@@ -228,7 +243,7 @@ if __name__ == "__main__":
         seed,
     )
 
-    ranked = sorted(score.items(), key=lambda kv: (kv[1], kv[0]))
+    ranked = sorted(score.items(), key=lambda kv: (kv[1], kv[0]), reverse=True)
     for i in range(3):
         print(f"Most valuable split n°{i+1}:")
         print("\tlost:", ranked[i][1])
@@ -238,5 +253,9 @@ if __name__ == "__main__":
             for j, pred in enumerate(predicates):
                 if key[j] == 1:
                     fd.write(f"sat: {pred.name}\n")
-            for state in set(states_visited[key]):
-                fd.write(f"{state}\n")
+            fd.write(f"\nAction Played: {action[key]}\n")
+            for lost_q, best, state in sorted(bad_states[key], reverse=True):
+                fd.write(f"lost:{lost_q:.2e} best:{best} state:{state}\n")
+            fd.write("=" * 60 + "\n")
+            for state in good_states[key]:
+                fd.write(f"good state:{state}\n")
