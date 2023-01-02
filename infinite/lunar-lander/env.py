@@ -6,7 +6,7 @@ from polext import Predicate
 import torch
 import gym
 
-bins = 40
+bins = 20
 
 states_arrays = [
     ("x", np.linspace(-1.0, +1.0, num=bins, endpoint=False)),
@@ -49,7 +49,7 @@ def make_pair_pred(na: str, nb: str, nber: float):
     bi = idx_from_name(nb)
 
     def lower(s):
-        return s[ai] + s[bi] <= -nber
+        return s[ai] + s[bi] <= nber
 
     def higher(s):
         return s[ai] + s[bi] >= nber
@@ -58,12 +58,18 @@ def make_pair_pred(na: str, nb: str, nber: float):
 
 
 for na, nb in [("angle", "vangle"), ("x", "vx"), ("y", "vy")]:
-    for nbr in [0, 0.05, 0.1]:
+    for nbr in [-0.05, 0, 0.05, 0.1]:
         lower, higher = make_pair_pred(na, nb, nbr)
         predicates.append(Predicate(f"{na} + {nb} >= {nbr}", higher))
         predicates.append(Predicate(f"{na} + {nb} <= {nbr}", lower))
 
 predicates.append(Predicate("has ground contact", lambda s: s[-1] + s[-2] >= 1))
+predicates.append(Predicate("|x| + |y| < .1", lambda s: abs(s[0]) + abs(s[1]) < 0.1))
+predicates.append(Predicate("|vx| + |vy| < .1", lambda s: abs(s[2]) + abs(s[3]) < 0.1))
+predicates.append(Predicate("|vx| > 10^-4", lambda s: abs(s[2]) < 1e-4))
+predicates.append(Predicate("|vy| > 10^-4", lambda s: abs(s[3]) < 1e-4))
+predicates.append(Predicate("|angle| < .01", lambda s: abs(s[4]) < 0.01))
+predicates.append(Predicate("|vangle| < .01", lambda s: abs(s[5]) < 0.01))
 
 
 def center_angle(s):
@@ -85,6 +91,18 @@ predicates.append(
     Predicate(
         "(center - angle)/2 - vangle >= .05",
         lambda s: (center_angle(s) - s[4]) / 2 - s[5] >= 0.05,
+    )
+)
+predicates.append(
+    Predicate(
+        "(center - angle)/2 - vangle <= -.05",
+        lambda s: (center_angle(s) - s[4]) / 2 - s[5] <= -0.05,
+    )
+)
+predicates.append(
+    Predicate(
+        "(center - angle)/2 - vangle >= -.05",
+        lambda s: (center_angle(s) - s[4]) / 2 - s[5] >= -0.05,
     )
 )
 
