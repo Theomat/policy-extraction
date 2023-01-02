@@ -146,12 +146,16 @@ if __name__ == "__main__":
     n_timesteps = config["n_timesteps"]
     del config["n_timesteps"]
     del config["policy"]
-    config["policy_kwargs"] = eval(config["policy_kwargs"])
+    if "policy_kwargs" in config:
+        config["policy_kwargs"] = eval(config["policy_kwargs"])
     for elem in ["seed", "verbose", "device"]:
         config[elem] = args[elem]
 
     if seed is not None:
         config["seed"] = seed
+
+    del config["env_wrapper"]
+    del config["frame_stack"]
 
     model = DQN("MlpPolicy", train_env, **config)
     model.learn(
