@@ -25,6 +25,9 @@ class PredicateSpace(Generic[S]):
             if not used:
                 yield pred
 
+    def sat_predicate(self, state: Tuple[bool, ...], predicate: Predicate[S]) -> bool:
+        return state[self.predicate2int[predicate]]
+
     def get_representative(self, state: S, save: bool = True) -> Tuple[bool, ...]:
         repres = tuple(p(state) for p in self.predicates)
         if save and repres not in self.seen:

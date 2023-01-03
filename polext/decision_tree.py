@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Generic, Optional, TypeVar
+from typing import Generic, Optional, Tuple, TypeVar, Union
 
 from polext.predicate import Predicate
+from polext.predicate_space import PredicateSpace
 
 from rich import print
 from rich.tree import Tree
@@ -13,8 +14,21 @@ S = TypeVar("S")
 
 class DecisionTree(ABC, Generic[S]):
     @abstractmethod
-    def __call__(self, state: S) -> int:
+    def eval(self, state: S) -> int:
         pass
+
+    @abstractmethod
+    def eval_pred_space(self, state: Tuple[bool, ...], space: PredicateSpace[S]) -> int:
+        pass
+
+    def __call__(
+        self,
+        state: Union[S, Tuple[bool, ...]],
+        space: Optional[PredicateSpace[S]] = None,
+    ) -> int:
+        if space is None:
+            return self.eval(state)  # type: ignore
+        return self.eval_pred_space(state, space)  # type: ignore
 
     @abstractmethod
     def to_string(self, level: int = 0) -> str:
@@ -36,10 +50,15 @@ class Node(DecisionTree[S]):
     left: DecisionTree[S]
     right: DecisionTree[S]
 
-    def __call__(self, state: S) -> int:
+    def eval(self, state: S) -> int:
         if self.predicate(state):
             return self.left(state)
         return self.right(state)
+
+    def eval_pred_space(self, state: Tuple[bool, ...], space: PredicateSpace[S]) -> int:
+        if space.sat_predicate(state, self.predicate):
+            return self.left(state, space)
+        return self.right(state, space)
 
     def to_string(self, level: int = 0) -> str:
         return (
@@ -96,7 +115,10 @@ class Node(DecisionTree[S]):
 class Leaf(DecisionTree[S]):
     action: int
 
-    def __call__(self, state: S) -> int:
+    def eval(self, state: S) -> int:
+        return self.action
+
+    def eval_pred_space(self, state: Tuple[bool, ...], space: PredicateSpace[S]) -> int:
         return self.action
 
     def to_string(self, level: int = 0) -> str:
