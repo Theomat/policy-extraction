@@ -1,2 +1,10 @@
-stable-baselines3>=1.6.2
-rl-zoo3>=1.6.3
+rl-zoo3==1.6.3
+stable-baselines3==1.6.2
+gym==0.21.0
+ale-py==0.7.5
+matplotlib
+pltpublish
+tqdm
+numpy
+rich
+opencv-python
