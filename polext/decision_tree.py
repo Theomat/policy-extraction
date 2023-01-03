@@ -52,13 +52,13 @@ class Node(DecisionTree[S]):
 
     def eval(self, state: S) -> int:
         if self.predicate(state):
-            return self.left(state)
-        return self.right(state)
+            return self.left.eval(state)
+        return self.right.eval(state)
 
     def eval_pred_space(self, state: Tuple[bool, ...], space: PredicateSpace[S]) -> int:
         if space.sat_predicate(state, self.predicate):
-            return self.left(state, space)
-        return self.right(state, space)
+            return self.left.eval_pred_space(state, space)
+        return self.right.eval_pred_space(state, space)
 
     def to_string(self, level: int = 0) -> str:
         return (
