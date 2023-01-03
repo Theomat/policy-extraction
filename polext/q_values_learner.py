@@ -11,7 +11,6 @@ class QValuesLearner:
         self.visits = {}
         self.Qtable = {}
         self.nactions = -1
-        self.normalised = False
         self._total_visits = 0
 
     def add_one_visit(self, state: Tuple[bool, ...], Q_values: np.ndarray):
@@ -31,28 +30,11 @@ class QValuesLearner:
     def state_visits(self, state: Tuple[bool, ...]) -> int:
         return self.visits.get(state, 0)
 
-    def state_normalised_Q(self, state: Tuple[bool, ...]) -> Optional[np.ndarray]:
-        return self[state]
-
-    def state_Q(self, state: Tuple[bool, ...]) -> Optional[np.ndarray]:
-        Qvalues = self.Qtable.get(state, None)
-        if Qvalues is None:
-            return None
-        if self.normalised:
-            return Qvalues * self.visits[state]
-        return Qvalues
-
     def __getitem__(self, state: Tuple[bool, ...]) -> Optional[np.ndarray]:
-        Qvalues = self.Qtable.get(state, None)
-        if Qvalues is None:
-            return None
-        if self.normalised:
-            return Qvalues
-        return Qvalues / self.visits[state]
+        return self.Qtable.get(state, None)
 
     def reset_Q(self):
         self.Qtable = {s: Q * 0 for s, Q in self.Qtable.items()}
-        self.normalised = False
 
     def learn_qvalues(
         self,
@@ -74,28 +56,12 @@ class QValuesLearner:
         self.Qtable[state][action] += alpha * (
             r + gamma * nval - self.Qtable[state][action]
         )
-        self.normalised = True
 
     def mix_with(self, other: "QValuesLearner", coefficient: float) -> None:
         # Merge
         for state in list(self.Qtable.keys()):
-            other_q = other.state_normalised_Q(state)
+            other_q = other[state]
             if other_q is not None:
-                out = (
-                    self.state_normalised_Q(state) * (1 - coefficient)
-                    + coefficient * other_q
+                self.Qtable[state] = (
+                    self[state] * (1 - coefficient) + coefficient * other_q  # type: ignore
                 )
-                if self.normalised:
-                    self.Qtable[state] = out
-                else:
-                    self.Qtable[state] = out * self.visits[state]
-
-    def normalise(self) -> None:
-        if not self.normalised:
-            self.Qtable = {s: Q / self.visits[s] for s, Q in self.Qtable.items()}
-            self.normalised = True
-
-    def unnormalise(self) -> None:
-        if self.normalised:
-            self.Qtable = {s: Q * self.visits[s] for s, Q in self.Qtable.items()}
-            self.normalised = False

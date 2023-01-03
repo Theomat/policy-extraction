@@ -21,7 +21,7 @@ def tree_loss(
 ) -> float:
     regret = 0
     for s in space.seen:
-        Qvals = Qtable.state_normalised_Q(s)
+        Qvals = Qtable[s]
         if Qvals is None:
             continue
         regret += np.max(Qvals) - Qvals[tree(s, space)]
@@ -61,7 +61,7 @@ def __iterate__(
     seed: Optional[int] = None,
     **kwargs,
 ) -> Generator[Tuple[Callable[[S], int], Tuple[float, float]], None, None]:
-    tree = builder(space, qtable, max_depth, seed=seed, **kwargs)
+    tree = builder(space, qtable, max_depth, seed=seed, **kwargs)  # type: ignore
     if iterations <= 1:
         yield (
             tree,
@@ -110,21 +110,19 @@ def __iterate__(
 
     # Learning Q_Value in predicate space
     mean_length = np.mean(episodes_length)
-    gamma = np.float_power(0.01, 1.0 / mean_length)
+    gamma = np.float_power(0.05, 1.0 / mean_length)
 
-    next_qtable.reset_Q()
+    # next_qtable.reset_Q()
 
     for st, action, r, stp1, done in replay_buffer[::-1]:
         alpha = 1.0 / next_qtable.state_visits(st)
         next_qtable.learn_qvalues(st, action, r, stp1, done, alpha, gamma)
 
     # Mix the two Qtables
-    next_qtable.mix_with(qtable, 0.5)
+    # next_qtable.mix_with(qtable, 0.5)
 
     def next_Q(state: S) -> np.ndarray:
-        value = next_qtable.state_normalised_Q(
-            new_space.get_representative(state, False)
-        )
+        value = next_qtable[new_space.get_representative(state, False)]
         return value if value is not None else Qfun(state)
 
     for x in __iterate__(
@@ -158,7 +156,7 @@ def __forest__(
         gen = space.random_splits(seed)
         return Forest(
             [
-                builder(next(gen), qtable, max_depth, seed=seed, **kwargs)
+                builder(next(gen), qtable, max_depth, seed=seed, **kwargs)  # type: ignore
                 for _ in range(ntrees)
             ]
         )
