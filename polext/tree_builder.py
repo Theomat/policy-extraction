@@ -24,7 +24,7 @@ def tree_loss(
         Qvals = Qtable.state_normalised_Q(s)
         if Qvals is None:
             continue
-        regret += np.max(Qvals) - Qvals[tree(s)]
+        regret += np.max(Qvals) - Qvals[tree(s, space)]
     return regret
 
 
@@ -65,7 +65,14 @@ def __iterate__(
     if iterations <= 1:
         yield (
             tree,
-            vec_eval_policy(tree, episodes, env_fn, nenvs, qtable.nactions, seed=seed),
+            vec_eval_policy(
+                tree,
+                episodes,
+                env_fn,
+                nenvs,
+                qtable.nactions,
+                seed=seed,
+            ),
         )
         return
 
