@@ -79,20 +79,21 @@ def __iterate__(
         rew: float, ep: int, st: S, Qval: np.ndarray, r: float, stp1: S, done: bool
     ) -> float:
         episodes_length[ep] += 1
-        qq = Qfun(st)
         ps = new_space.get_representative(st)
-        next_qtable.add_one_visit(ps, qq)
+        oracle_q = Qfun(st)
+        next_qtable.add_one_visit(ps, oracle_q)
         action = np.argmax(Qval)
         replay_buffer.append(
             (ps, action, r, new_space.get_representative(stp1, False), done)
         )
         return rew + r
 
+    actual_nenvs = min(nenvs, episodes)
     total_rewards = vec_interact(
-        policy_to_q_function(tree, qtable.nactions, min(nenvs, episodes)),
+        policy_to_q_function(tree, qtable.nactions, actual_nenvs),
         episodes,
         env_fn,
-        min(nenvs, episodes),
+        actual_nenvs,
         our_step,
         0.0,
         seed=seed,
