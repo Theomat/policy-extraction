@@ -1,4 +1,4 @@
-from typing import Callable, List, Tuple
+from typing import Callable, Tuple
 import numpy as np
 from stable_baselines3 import DQN
 from stable_baselines3.common.vec_env.vec_frame_stack import VecFrameStack
@@ -25,16 +25,16 @@ class VecActionWrapper(VecEnvWrapper):
     def __init__(self, env: VecEnv) -> None:
         super().__init__(env)
 
-    def step(self, action: int) -> Tuple[np.ndarray, float, bool, dict]:
-        obs, r, done, info = self.venv.step([action])
-        return obs, r[0], done[0], info
+    def step_async(self, actions: np.ndarray) -> None:
+        if not isinstance(actions, (np.ndarray, list, tuple)):
+            return self.venv.step_async([actions])
+        return self.venv.step_async(actions)
 
     def step_wait(self) -> VecEnvStepReturn:
         return self.venv.step_wait()
 
     def reset(self) -> VecEnvObs:
-        obs = self.venv.reset()
-        return obs
+        return self.venv.reset()
 
 
 make_env = lambda: VecActionWrapper(
