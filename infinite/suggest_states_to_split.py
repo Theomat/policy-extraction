@@ -286,22 +286,56 @@ if __name__ == "__main__":
 
                 m = Model(name="separator")
                 shape = env.observation_space.shape[0]
-                space_var = m.continuous_var(name="space", lb=1e-6, ub=1)
-                vars = [m.continuous_var(name=f"s{i}") for i in range(shape)]
-                squared_vars = [m.continuous_var(name=f"s{i}^2") for i in range(shape)]
+                space_var = m.continuous_var(name="space", lb=0, ub=1)
+                vars = [m.continuous_var(name=f"s[{i}]") for i in range(shape)]
+                squared_vars = [m.continuous_var(name=f"s[{i}]**2") for i in range(shape)]
+                mixed_vars = [
+                    m.continuous_var(name=f"s[{i}] * s[{j}]")
+                    for j in range(i + 1, shape)
+                    for i in range(shape)
+                ]
+                all_vars = vars + squared_vars + mixed_vars
+                comb2idx = {
+                    tp: idx
+                    for idx, tp in enumerate(
+                        (i, j) for j in range(i + 1, shape) for i in range(shape)
+                    )
+                }
                 for state in good_states[key][:500]:
                     linear = sum(state[i] * vars[i] for i in range(shape))
                     square = sum(
                         state[i] * state[i] * squared_vars[i] for i in range(shape)
                     )
-                    m.add_constraint(linear + square >= space_var)
+                    mixed = sum(
+                        state[i] * state[j] * mixed_vars[comb2idx[(i, j)]]
+                        for j in range(i + 1, shape)
+                        for i in range(shape)
+                    )
+                    m.add_constraint(linear + square + mixed >= space_var + 1e-6)
                 for a, b, state in bad_states[key][:500]:
                     linear = sum(state[i] * vars[i] for i in range(shape))
                     square = sum(
                         state[i] * state[i] * squared_vars[i] for i in range(shape)
                     )
-                    m.add_constraint(linear + square <= -space_var)
+                    mixed = sum(
+                        state[i] * state[j] * mixed_vars[comb2idx[(i, j)]]
+                        for j in range(i + 1, shape)
+                        for i in range(shape)
+                    )
+                    m.add_constraint(linear + square + mixed <= -space_var - 1e-6)
                 m.set_objective("max", space_var)
                 solution: SolveSolution = m.solve()
-                solution.display()
-                solution.export(f"best_{i}_separator.json")
+                if solution is not None:
+                    solution.display()
+                    predicate = "Predicate(\""
+                    elements = []
+                    for v in all_vars:
+                        coeff = solution[v]
+                        if abs(coeff) > 1:
+                            elements.append(f"{v.name} * {coeff}")
+                    expr = " + ".join(elements)
+                    predicate +=  expr + " < 0\",\n\tlambda s:" + expr + " < 0)"
+                    with open(f"best_{i}_separator.py", "w") as fd:
+                        fd.write(predicate) 
+                else:
+                    print("\tcould not find a good separator...")
