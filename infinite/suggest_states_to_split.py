@@ -83,6 +83,12 @@ if __name__ == "__main__":
         default=32,
         help="number of envs to run simultaneously (i.e. batch size)",
     )
+    parser.add_argument(
+        "-y",
+        dest="autoyes",
+        action="store_true",
+        help="say yes automatically when asking if help from solver is wanted",
+    )
 
     parameters = parser.parse_args()
     script_path: str = parameters.script_path
@@ -90,6 +96,7 @@ if __name__ == "__main__":
     episodes: int = parameters.episodes
     nenvs: int = parameters.n
     model_path: str = parameters.model_path
+    auto_yes: bool = parameters.autoyes
     seed: Optional[int] = parameters.seed
 
     # Find existing config folder
@@ -263,25 +270,38 @@ if __name__ == "__main__":
                 fd.write(f"good state:{state}\n")
         if len(good_states[key]) > 0:
             should_try = (
-                input(
-                    "Do you want to try using linear programming to find a separator?[y/*]"
+                auto_yes
+                or (
+                    input(
+                        "Do you want to try using linear programming to find a separator?[y/*]"
+                    )
+                    .strip()
+                    .lower()
                 )
-                .strip()
-                .lower()
+                == "y"
             )
-            if should_try == "y":
+            if should_try:
                 from docplex.mp.solution import SolveSolution
                 from docplex.mp.model import Model
-                small = 1e-6
+
                 m = Model(name="separator")
                 shape = env.observation_space.shape[0]
+                space_var = m.continuous_var(name="space", lb=1e-6, ub=1)
                 vars = [m.continuous_var(name=f"s{i}") for i in range(shape)]
-                for state in good_states[key]:
-                    constraint = sum(state[i] * vars[i] for i in range(shape))
-                    m.add_constraint(constraint >= small)
-                for a, b, state in bad_states[key]:
-                    constraint = sum(state[i] * vars[i] for i in range(shape))
-                    m.add_constraint(constraint <= small)
+                squared_vars = [m.continuous_var(name=f"s{i}^2") for i in range(shape)]
+                for state in good_states[key][:500]:
+                    linear = sum(state[i] * vars[i] for i in range(shape))
+                    square = sum(
+                        state[i] * state[i] * squared_vars[i] for i in range(shape)
+                    )
+                    m.add_constraint(linear + square >= space_var)
+                for a, b, state in bad_states[key][:500]:
+                    linear = sum(state[i] * vars[i] for i in range(shape))
+                    square = sum(
+                        state[i] * state[i] * squared_vars[i] for i in range(shape)
+                    )
+                    m.add_constraint(linear + square <= -space_var)
+                m.set_objective("max", space_var)
                 solution: SolveSolution = m.solve()
                 solution.display()
                 solution.export(f"best_{i}_separator.json")
