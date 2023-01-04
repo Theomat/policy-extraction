@@ -14,12 +14,7 @@ import numpy as np
 
 
 aggregate_func = lambda x: np.array(
-    [
-        metrics.aggregate_median(x),
-        metrics.aggregate_iqm(x),
-        metrics.aggregate_mean(x),
-        metrics.aggregate_optimality_gap(x),
-    ]
+    [metrics.aggregate_median(x), metrics.aggregate_iqm(x), metrics.aggregate_mean(x)]
 )
 
 
@@ -30,7 +25,7 @@ def easy_plot(scores_dict, filepath="test.png"):
     fig, axes = plot_utils.plot_interval_estimates(
         aggregate_scores,
         aggregate_score_cis,
-        metric_names=["Median", "IQM", "Mean", "Optimality Gap"],
+        metric_names=["Median", "IQM", "Mean"],
         algorithms=list(scores_dict.keys()),
         xlabel="Reward",
     )
@@ -179,4 +174,28 @@ if __name__ == "__main__":
     )
     plt.tight_layout()
     plt.savefig(f"{filename}_perf_cmp_discrete_dqn.png", dpi=500)
+    plt.show()
+
+    compared_dict = {}
+
+    for name in variants:
+        if name == "dqn":
+            continue
+        base_score = score_dict[f"{name}-d={depths[-1]}-it=1"]
+        all_scores = [
+            score_dict[f"{name}-d={depths[-1]}-it={it}"] for it in iterations[1:]
+        ]
+        some_list = [(np.mean(s), -np.std(s), i) for i, s in enumerate(all_scores)]
+        some_list = sorted(some_list)
+        best_score = all_scores[some_list[-1][2]]
+        compared_dict[f"max({name}-it>1),{name}-it=1"] = (best_score, base_score)
+
+    average_probabilities, average_prob_cis = rly.get_interval_estimates(
+        compared_dict, metrics.probability_of_improvement, reps=1000
+    )
+    plot_utils.plot_probability_of_improvement(
+        average_probabilities, average_prob_cis, figsize=(8, 4)
+    )
+    plt.tight_layout()
+    plt.savefig(f"{filename}_perf_impr_iterations.png", dpi=500)
     plt.show()
