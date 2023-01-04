@@ -240,15 +240,17 @@ if __name__ == "__main__":
         nenvs,
         step,
         0,
-        seed,
+        seed=seed,
     )
 
     ranked = sorted(score.items(), key=lambda kv: (kv[1], kv[0]), reverse=True)
     for i in range(3):
         print(f"Most valuable split n°{i+1}:")
-        print("\tlost:", ranked[i][1])
-        print(f"\tstates are saved in best_{i}.txt")
         key = ranked[i][0]
+        visits = len(good_states[key]) + len(bad_states[key])
+        print("\tlost:", ranked[i][1], "visits:", visits)
+        print("\tlost on average:", ranked[i][1] / visits)
+        print(f"\tstates are saved in best_{i}.txt")
         with open(f"best_{i}.txt", "w") as fd:
             for j, pred in enumerate(predicates):
                 if key[j] == 1:
@@ -259,3 +261,27 @@ if __name__ == "__main__":
             fd.write("=" * 60 + "\n")
             for state in good_states[key]:
                 fd.write(f"good state:{state}\n")
+        if len(good_states[key]) > 0:
+            should_try = (
+                input(
+                    "Do you want to try using linear programming to find a separator?[y/*]"
+                )
+                .strip()
+                .lower()
+            )
+            if should_try == "y":
+                from docplex.mp.solution import SolveSolution
+                from docplex.mp.model import Model
+                small = 1e-6
+                m = Model(name="separator")
+                shape = env.observation_space.shape[0]
+                vars = [m.continuous_var(name=f"s{i}") for i in range(shape)]
+                for state in good_states[key]:
+                    constraint = sum(state[i] * vars[i] for i in range(shape))
+                    m.add_constraint(constraint >= small)
+                for a, b, state in bad_states[key]:
+                    constraint = sum(state[i] * vars[i] for i in range(shape))
+                    m.add_constraint(constraint <= small)
+                solution: SolveSolution = m.solve()
+                solution.display()
+                solution.export(f"best_{i}_separator.json")
