@@ -11,7 +11,7 @@ from polext.decision_tree import DecisionTree
 from polext.forest import Forest
 from polext.predicate_space import PredicateSpace
 from polext.interaction_helper import vec_eval_policy, vec_interact
-from polext.tree_builder import build_tree, tree_loss, list_registered_algorithms
+from polext.tree_builder import build_tree, regret, list_registered_algorithms
 from polext.q_values_learner import QValuesLearner
 from polext.algos import *
 
@@ -189,7 +189,6 @@ if __name__ == "__main__":
     print()
 
     eval_fn = vec_eval_policy
-    loss = tree_loss
     base_builder = build_tree
     builder = lambda *args, **kwargs: base_builder(
         *args,
@@ -208,7 +207,7 @@ if __name__ == "__main__":
         tree, score = out
         print(
             "Lost Q-Values:",
-            Text.assemble((str(loss(tree, space, Qtable)), FINITE_LOSS_STYLE)),
+            Text.assemble((str(regret(tree, space, Qtable)), FINITE_LOSS_STYLE)),
         )
         print_reward(episodes, score[0], score[1])
         return tree

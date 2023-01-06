@@ -16,7 +16,7 @@ from polext.interaction_helper import (
 S = TypeVar("S")
 
 
-def tree_loss(
+def regret(
     tree: DecisionTree[S], space: PredicateSpace[S], Qtable: QValuesLearner
 ) -> float:
     regret = 0
@@ -26,6 +26,18 @@ def tree_loss(
             continue
         regret += np.max(Qvals) - Qvals[tree(s, space)]
     return regret
+
+
+def tree_loss(
+    tree: DecisionTree[S], space: PredicateSpace[S], Qtable: QValuesLearner
+) -> float:
+    loss = 0
+    for s in space.seen:
+        Qvals = Qtable[s]
+        if Qvals is None:
+            continue
+        loss += -Qvals[tree(s, space)]
+    return loss
 
 
 @dataclass
