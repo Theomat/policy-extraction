@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Generic, Optional, Tuple, TypeVar, Union
 
 from polext.predicate import Predicate
 from polext.predicate_space import PredicateSpace
+
+import numpy as np
 
 from rich import print
 from rich.tree import Tree
@@ -29,6 +31,9 @@ class DecisionTree(ABC, Generic[S]):
         if space is None:
             return self.eval(state)  # type: ignore
         return self.eval_pred_space(state, space)  # type: ignore
+
+    def seed(self, seed: Optional[int] = None) -> None:
+        pass
 
     @abstractmethod
     def to_string(self, level: int = 0) -> str:
@@ -68,6 +73,10 @@ class Node(DecisionTree[S]):
 
     def __repr__(self) -> str:
         return self.to_string()
+
+    def seed(self, seed: Optional[int] = None) -> None:
+        self.left.seed(seed)
+        self.right.seed(seed)
 
     def simplified(self) -> "DecisionTree[S]":
         if (
@@ -126,6 +135,40 @@ class Leaf(DecisionTree[S]):
 
     def __repr__(self) -> str:
         return self.to_string()
+
+    def print(self, parent: Optional[Tree] = None):
+        action = Text.assemble((f"{self.action}", "bright_green"))
+        if parent is None:
+            parent = Tree(action)
+            print(parent)
+        else:
+            parent = parent.add(action)
+
+
+@dataclass
+class StochasticLeaf(DecisionTree[S]):
+    actions: np.ndarray
+    probabilities: np.ndarray
+    rng: np.random.Generator = field(
+        hash=False, compare=False, repr=False, default_factory=np.random.default_rngs
+    )
+
+    def eval(self, state: S) -> int:
+        return self.rng.choice(self.actions, p=self.probabilities)
+
+    def eval_pred_space(self, state: Tuple[bool, ...], space: PredicateSpace[S]) -> int:
+        return self.rng.choice(self.actions, p=self.probabilities)
+
+    def to_string(self, level: int = 0) -> str:
+        return "\t" * level + ", ".join(
+            f"{a}: {p:.2f}" for a, p in zip(self.actions, self.probabilities)
+        )
+
+    def __repr__(self) -> str:
+        return self.to_string()
+
+    def seed(self, seed: Optional[int]) -> None:
+        self.rng = np.random.default_rng(seed)
 
     def print(self, parent: Optional[Tree] = None):
         action = Text.assemble((f"{self.action}", "bright_green"))
