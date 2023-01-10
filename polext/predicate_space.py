@@ -77,7 +77,9 @@ class PredicateSpace(Generic[S]):
         rng = np.random.default_rng(seed)
         while True:
             sub_space = PredicateSpace(self.predicates)
-            sub_space.seen = set(rng.choice(states, size=sample_size, replace=False))
+            sub_space.seen = set(
+                tuple(x) for x in rng.choice(states, size=sample_size, replace=False)
+            )
             # Update predicates_set
             sub_space.predicates_set = {
                 p: a.intersection(sub_space.seen)
