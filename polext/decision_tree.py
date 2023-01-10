@@ -150,7 +150,7 @@ class StochasticLeaf(DecisionTree[S]):
     actions: np.ndarray
     probabilities: np.ndarray
     rng: np.random.Generator = field(
-        hash=False, compare=False, repr=False, default_factory=np.random.default_rngs
+        hash=False, compare=False, repr=False, default_factory=np.random.default_rng
     )
 
     def eval(self, state: S) -> int:
