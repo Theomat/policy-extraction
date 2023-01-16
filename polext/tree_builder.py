@@ -33,10 +33,7 @@ def tree_loss(
 ) -> float:
     loss = 0
     for s in space.seen:
-        Qvals = Qtable[s]
-        if Qvals is None:
-            continue
-        loss += -Qvals[tree(s, space)]
+        loss += -Qtable[s, tree(s, space)]
     return loss
 
 

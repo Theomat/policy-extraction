@@ -44,11 +44,11 @@ def __compute_score__(
     pos = space.seen if candidate is None else space.predicates_set[candidate]
     neg = [] if candidate is None else list(space.predicate_set_complement(candidate))
     part_classes = {
-        action: sum(Qtable[s][action] for s in pos if s in sub)
+        action: sum(Qtable[s, action] for s in pos if s in sub)
         for action, sub in classes.items()
     }
     not_part_classes = {
-        action: sum(Qtable[s][action] for s in neg if s in sub)
+        action: sum(Qtable[s, action] for s in neg if s in sub)
         for action, sub in classes.items()
     }
     score = 0
@@ -67,11 +67,11 @@ def __compute_score__(
     for s in pos:
         a = Qmax[s]
         if a not in availables_pos:
-            score += max(Qtable[s][i] for i in availables_pos)
+            score += max(Qtable[s, i] for i in availables_pos)
     for s in neg:
         a = Qmax[s]
         if a not in availables_neg:
-            score += max(Qtable[s][i] for i in availables_neg)
+            score += max(Qtable[s, i] for i in availables_neg)
     return score
 
 

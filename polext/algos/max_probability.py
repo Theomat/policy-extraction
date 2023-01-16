@@ -57,10 +57,10 @@ def __compute_score__(
     tnpart = max(1e-99, sum(not_part_classes.values()))
     for s in pos:
         a = Qmax[s]
-        score += part_classes[a] / tpart * Qtable[s][a]
+        score += part_classes[a] / tpart * Qtable[s, a]
     for s in neg:
         a = Qmax[s]
-        score += not_part_classes[a] / tnpart * Qtable[s][a]
+        score += not_part_classes[a] / tnpart * Qtable[s, a]
     return score
 
 

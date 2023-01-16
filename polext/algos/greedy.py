@@ -36,7 +36,8 @@ def greedy_tree_builder(fn, build_qmax: bool = False):
         if build_qmax:
             for s in space.seen:
                 Qval = qtable[s]
-                Qmax[s] = np.max(Qval)
+                if Qval is not None:
+                    Qmax[s] = np.max(Qval)
         for action in range(qtable.nactions):
             tree = __rec_tree__(
                 fn, space, qtable, max_depth, action, Qmax=Qmax
@@ -105,17 +106,17 @@ def greedy_q_selection(
 ) -> Tuple[Optional[Predicate[S]], int, int]:
     best_predicate = None
     best_action = previous_action
-    best_score = sum(Qtable[s][previous_action] for s in space)
+    best_score = sum(Qtable[s, previous_action] for s in space)
     for candidate, sub_states in space.predicates_set.items():
         part = sub_states
         free_score = sum(
-            Qtable[s][previous_action]
+            Qtable[s, previous_action]
             for s in space.predicate_set_complement(candidate)
         )
         for action in range(Qtable.nactions):
             if action == previous_action:
                 continue
-            score = sum(Qtable[s][action] for s in part) + free_score
+            score = sum(Qtable[s, action] for s in part) + free_score
             if score > best_score:
                 best_predicate = candidate
                 best_action = action
@@ -133,7 +134,7 @@ def greedy_opt_action_selection(
 ) -> Tuple[Optional[Predicate[S]], int, int]:
     best_predicate = None
     best_action = previous_action
-    n_before = sum(Qmax[s] <= Qtable[s][previous_action] for s in space)
+    n_before = sum(Qmax[s] <= Qtable[s, previous_action] for s in space if s in Qmax)
     best_score = n_before
     for candidate, sub_states in space.predicates_set.items():
         # print("\tcandidate:", candidate)
@@ -141,12 +142,15 @@ def greedy_opt_action_selection(
         n_candidate = sum(
             1
             for s in space.predicate_set_complement(candidate)
-            if Qmax[s] <= Qtable[s][previous_action]
+            if s in Qmax and Qmax[s] <= Qtable[s, previous_action]
         )
         for action in range(Qtable.nactions):
             if action == previous_action:
                 continue
-            n_after = sum(1 for s in part if Qmax[s] <= Qtable[s][action]) + n_candidate
+            n_after = (
+                sum(1 for s in part if s in Qmax and Qmax[s] <= Qtable[s, action])
+                + n_candidate
+            )
             score = n_after
             # print("\t\taction:", action, "score:", score)
             if score > best_score:
