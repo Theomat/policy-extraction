@@ -1,6 +1,8 @@
 from typing import (
     Optional,
     Tuple,
+    Union,
+    overload,
 )
 
 import numpy as np
@@ -30,7 +32,22 @@ class QValuesLearner:
     def state_visits(self, state: Tuple[bool, ...]) -> int:
         return self.visits.get(state, 0)
 
+    @overload
     def __getitem__(self, state: Tuple[bool, ...]) -> Optional[np.ndarray]:
+        pass
+
+    @overload
+    def __getitem__(self, pair: Tuple[Tuple[bool, ...], int]) -> float:
+        pass
+
+    def __getitem__(
+        self, state: Union[Tuple[bool, ...], Tuple[Tuple[bool, ...], int]]
+    ) -> Union[Optional[np.ndarray], float]:
+        if len(state) == 2:
+            s, action = state
+            if s in self.Qtable:
+                return self.Qtable[s][action]
+            return 0
         return self.Qtable.get(state, None)
 
     def reset_Q(self):
