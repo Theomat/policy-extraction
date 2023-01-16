@@ -288,7 +288,9 @@ if __name__ == "__main__":
                 shape = env.observation_space.shape[0]
                 space_var = m.continuous_var(name="space", lb=0, ub=1)
                 vars = [m.continuous_var(name=f"s[{i}]") for i in range(shape)]
-                squared_vars = [m.continuous_var(name=f"s[{i}]**2") for i in range(shape)]
+                squared_vars = [
+                    m.continuous_var(name=f"s[{i}]**2") for i in range(shape)
+                ]
                 mixed_vars = [
                     m.continuous_var(name=f"s[{i}] * s[{j}]")
                     for j in range(i + 1, shape)
@@ -327,15 +329,15 @@ if __name__ == "__main__":
                 solution: SolveSolution = m.solve()
                 if solution is not None:
                     solution.display()
-                    predicate = "Predicate(\""
+                    predicate = 'Predicate("'
                     elements = []
                     for v in all_vars:
                         coeff = solution[v]
                         if abs(coeff) > 1:
                             elements.append(f"{v.name} * {coeff}")
                     expr = " + ".join(elements)
-                    predicate +=  expr + " < 0\",\n\tlambda s:" + expr + " < 0)"
+                    predicate += expr + ' < 0",\n\tlambda s:' + expr + " < 0)"
                     with open(f"best_{i}_separator.py", "w") as fd:
-                        fd.write(predicate) 
+                        fd.write(predicate)
                 else:
                     print("\tcould not find a good separator...")
