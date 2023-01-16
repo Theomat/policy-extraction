@@ -42,13 +42,11 @@ def __compute_score__(
     pos = space.seen if candidate is None else space.predicates_set[candidate]
     neg = [] if candidate is None else list(space.predicate_set_complement(candidate))
     part_classes = {
-        action: sum(Qtable.state_probability(s) for s in pos if s in sub)
-        / max(1, len(pos))
+        action: np.mean([Qtable.state_probability(s) for s in pos if s in sub] or [0])
         for action, sub in classes.items()
     }
     not_part_classes = {
-        action: sum(Qtable.state_probability(s) for s in neg if s in sub)
-        / max(1, len(neg))
+        action: np.mean([Qtable.state_probability(s) for s in neg if s in sub] or [0])
         for action, sub in classes.items()
     }
     pos_entropy = 0
