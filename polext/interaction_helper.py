@@ -1,6 +1,7 @@
 from typing import Any, Callable, List, Optional, TypeVar
 
 from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
+from stable_baselines3.common.vec_env.vec_video_recorder import VecVideoRecorder
 
 
 import numpy as np
@@ -107,3 +108,31 @@ def vec_interact(
                 )
         obs = nobs
     return out
+
+
+def record_video(
+    Q: Callable[[Any], np.ndarray],
+    env_creator: Callable,
+    nenv: int,
+    video_folder: str,
+    name_prefix: str = "agent",
+    video_length: int = 100,
+    seed: Optional[int] = None,
+):
+    venv = DummyVecEnv([env_creator for _ in range(nenv)])
+    venv.seed(seed)
+    venv = VecVideoRecorder(
+        venv,
+        video_folder,
+        record_video_trigger=lambda x: x == 0,
+        video_length=video_length,
+        name_prefix=name_prefix,
+    )
+
+    obs = venv.reset()
+    for _ in range(video_length + 1):
+        q_values = Q(obs)
+        actions = np.argmax(q_values, axis=1)
+        obs, _, _, _ = venv.step(actions)
+    # Save the video
+    venv.close()
