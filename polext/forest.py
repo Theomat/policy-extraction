@@ -26,9 +26,6 @@ class Forest(Generic[S]):
             return self.eval(state)  # type: ignore
         return self.eval_pred_space(state, space)  # type: ignore
 
-    def __call__(self, state: S) -> int:
-        return
-
     def votes(self, state: S) -> Dict[int, int]:
         votes = defaultdict(int)
         for tree in self.trees:
