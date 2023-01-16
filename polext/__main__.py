@@ -10,7 +10,12 @@ import numpy as np
 from polext.decision_tree import DecisionTree
 from polext.forest import Forest
 from polext.predicate_space import PredicateSpace
-from polext.interaction_helper import vec_eval_policy, vec_interact
+from polext.interaction_helper import (
+    policy_to_q_function,
+    record_video,
+    vec_eval_policy,
+    vec_interact,
+)
 from polext.tree_builder import build_tree, regret, list_registered_algorithms
 from polext.q_values_learner import QValuesLearner
 from polext.algos import *
@@ -58,7 +63,7 @@ def run_method(
     i = 0
     for val in builder(space, Qtable, max_depth, method, seed=seed):
         print("Method:", Text.assemble((method, "bold")), f"iteration {i+1}")
-        tree = callback(val)
+        tree = callback(val, method, i)
         if isinstance(tree, DecisionTree):
             tree.print()
         i += 1
@@ -103,6 +108,11 @@ if __name__ == "__main__":
         default=32,
         help="number of envs to run simultaneously (i.e. batch size)",
     )
+    parser.add_argument(
+        "--record",
+        action="store_true",
+        help="record episodes in ./videos",
+    )
 
     parser.add_argument(
         "--iterations",
@@ -132,6 +142,7 @@ if __name__ == "__main__":
     max_depth: int = parameters.depth
     ntrees: int = parameters.forest
     nenvs: int = parameters.n
+    record: bool = parameters.record
 
     # Parameters check
     if episodes < 1:
@@ -202,7 +213,7 @@ if __name__ == "__main__":
     )
 
     def callback(
-        out: Tuple[Union[DecisionTree, Forest], Any]
+        out: Tuple[Union[DecisionTree, Forest], Any], method: str, iteration: int
     ) -> Union[DecisionTree, Forest]:
         tree, score = out
         print(
@@ -210,6 +221,16 @@ if __name__ == "__main__":
             Text.assemble((str(regret(tree, space, Qtable)), FINITE_LOSS_STYLE)),
         )
         print_reward(episodes, score[0], score[1])
+        if record:
+            record_video(
+                policy_to_q_function(tree, Qtable.nactions, 4),
+                env_fn,
+                4,
+                "./videos",
+                name_prefix=f"{method}-d={max_depth}-it={iteration}",
+                video_length=1000,
+                seed=seed,
+            )
         return tree
 
     for method in methods_todo:
