@@ -6,11 +6,11 @@ from polext import Predicate
 import torch
 import gym
 
-bins = 20
+bins = 120
 
 states_arrays = [
-    ("x", np.linspace(-1.0, +1.0, num=bins, endpoint=False)),
-    ("y", np.linspace(-0.2, +2.0, num=bins, endpoint=False)),
+    ("x", np.linspace(-1.0, +1.0, num=bins // 2, endpoint=False)),
+    ("y", np.linspace(-0.2, +2.0, num=bins // 2, endpoint=False)),
     ("vx", np.linspace(-1, +1, num=bins, endpoint=False)),
     ("vy", np.linspace(-1, +1, num=bins, endpoint=False)),
     ("angle", np.linspace(-3.14 / 2, +3.14 / 2, num=bins, endpoint=False)),
