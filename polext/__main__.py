@@ -1,6 +1,6 @@
 import importlib
 import sys
-from typing import Any, Callable, Tuple, Union
+from typing import Any, Callable, List, Tuple, Union
 
 from rich import print
 from rich.text import Text
@@ -16,7 +16,8 @@ from polext.interaction_helper import (
     vec_eval_policy,
     vec_interact,
 )
-from polext.tree_builder import build_tree, regret, list_registered_algorithms
+import polext.tree_builder as tree_builder
+import polext.viper as viper
 from polext.q_values_learner import QValuesLearner
 from polext.algos import *
 
@@ -48,14 +49,15 @@ def run_method(
     seed: int,
     builder: Callable,
     callback: Callable,
+    algos_list: List[str],
 ):
-    if method not in list_registered_algorithms():
+    if method not in algos_list:
         print(
             Text.assemble(
                 ('Method:"', "red"),
                 method,
                 ('" is unknown, available methods are:', "red"),
-                ", ".join(list_registered_algorithms()),
+                ", ".join(algos_list),
             ),
             file=sys.stderr,
         )
@@ -89,7 +91,7 @@ if __name__ == "__main__":
     parser.add_argument(
         type=str,
         dest="method",
-        help=f"methods to be used any of {list_registered_algorithms()}",
+        help=f"methods to be used",
     )
     parser.add_argument(
         type=int,
@@ -112,6 +114,11 @@ if __name__ == "__main__":
         "--record",
         action="store_true",
         help="record episodes in ./videos",
+    )
+    parser.add_argument(
+        "--viper",
+        action="store_true",
+        help="use VIPER method",
     )
 
     parser.add_argument(
@@ -143,6 +150,7 @@ if __name__ == "__main__":
     ntrees: int = parameters.forest
     nenvs: int = parameters.n
     record: bool = parameters.record
+    use_viper: bool = parameters.viper
 
     # Parameters check
     if episodes < 1:
@@ -170,7 +178,9 @@ if __name__ == "__main__":
     # Find out methods to run
     methods_todo = []
     if method == "all":
-        methods_todo = list_registered_algorithms()
+        methods_todo = (
+            viper if use_viper else tree_builder
+        ).list_registered_algorithms()
     elif "," in method:
         methods_todo = method.split(",")
     else:
@@ -206,17 +216,42 @@ if __name__ == "__main__":
     print()
 
     eval_fn = vec_eval_policy
-    base_builder = build_tree
-    builder = lambda *args, **kwargs: base_builder(
-        *args,
-        Qfun=Q,
-        env_fn=env_fn,
-        nenvs=nenvs,
-        episodes=episodes,
-        iterations=iterations,
-        trees=ntrees,
-        **kwargs,
-    )
+
+    if viper:
+        builder = lambda *args, **kwargs: viper.viper(
+            *args,
+            Qfun=Q,
+            env_fn=env_fn,
+            nenvs=nenvs,
+            iterations=iterations,
+            samples=episodes,
+            *kwargs,
+        )
+        builder2 = lambda *args, **kwargs: viper.viper(
+            *args,
+            Qfun=Q,
+            env_fn=env_fn,
+            nenvs=nenvs,
+            iterations=iterations,
+            samples=episodes,
+            *kwargs,
+        )
+        def w(*args, **kwargs):
+            print("there are", len(args), "positional:", args)
+            print("there are", len(kwargs), "keywords:", kwargs)
+            return builder2(*args, **kwargs)
+        builder = w
+    else:
+        builder = lambda *args, **kwargs: tree_builder.build_tree(
+            *args,
+            Qfun=Q,
+            env_fn=env_fn,
+            nenvs=nenvs,
+            episodes=episodes,
+            iterations=iterations,
+            trees=ntrees,
+            **kwargs,
+        )
 
     def callback(
         out: Tuple[Union[DecisionTree, Forest], Any], method: str, iteration: int
@@ -224,7 +259,9 @@ if __name__ == "__main__":
         tree, score = out
         print(
             "Lost Q-Values:",
-            Text.assemble((str(regret(tree, space, Qtable)), FINITE_LOSS_STYLE)),
+            Text.assemble(
+                (str(tree_builder.regret(tree, space, total_Qtable)), FINITE_LOSS_STYLE)
+            ),
         )
         print_reward(episodes, score[0], score[1])
         if record:
@@ -248,4 +285,5 @@ if __name__ == "__main__":
             seed,
             builder,
             callback,
+            (viper if use_viper else tree_builder).list_registered_algorithms(),
         )
