@@ -46,7 +46,7 @@ def __viper_wrapper__(name: str, build_tree: Callable) -> Callable:
         for s, q, _ in dataset:
             ps = new_space.get_representative(s)
             qtable.add_one_visit(ps, q)
-        for tree, _, __ in build_tree(
+        for tree, _ in build_tree(
             new_space,
             qtable,
             max_depth,
