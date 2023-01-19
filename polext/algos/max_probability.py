@@ -29,7 +29,7 @@ def max_probability_tree_builder(
     ).simplified()
 
 
-register(TreeBuildingAlgo("max-probability", max_probability_tree_builder))
+register(TreeBuildingAlgo("max-probability", max_probability_tree_builder), True)
 
 
 def __compute_score__(

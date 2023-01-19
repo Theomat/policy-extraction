@@ -27,7 +27,7 @@ def entropy_tree_builder(
     ).simplified()
 
 
-register(TreeBuildingAlgo("entropy", entropy_tree_builder))
+register(TreeBuildingAlgo("entropy", entropy_tree_builder), True)
 
 
 def __compute_score__(
