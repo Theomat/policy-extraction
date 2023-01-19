@@ -18,6 +18,9 @@ def vec_eval_policy(
     nactions: int,
     seed: Optional[int] = None,
 ) -> tuple[float, float]:
+    if episodes <= 0:
+        return 0, -1
+
     def our_step(
         rew: float,
         ep: int,
@@ -66,6 +69,8 @@ def vec_interact(
     seed: Optional[int] = None,
 ) -> List[U]:
     out = []
+    if episodes <= 0:
+        return out
     venv = DummyVecEnv([env_creator for _ in range(nenv)])
     venv.seed(seed)
     current_episodes = [u0 for _ in range(nenv)]
