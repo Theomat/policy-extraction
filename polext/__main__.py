@@ -176,9 +176,12 @@ if __name__ == "__main__":
     else:
         methods_todo = [method]
 
+    rng = np.random.default_rng(seed)
+
     # Setup predicate space
     space = PredicateSpace(predicates)
-    Qtable = QValuesLearner()
+    total_Qtable = QValuesLearner()
+    Qtables = [QValuesLearner() for _ in range(max(0, ntrees))]
     # Empirical evaluation of Q-values
     def my_step(
         val: float,
@@ -190,7 +193,10 @@ if __name__ == "__main__":
         done: bool,
     ) -> float:
         s = space.get_representative(state)
-        Qtable.add_one_visit(s, Qvalues)
+        total_Qtable.add_one_visit(s, Qvalues)
+        for i, should_add in enumerate(rng.uniform(size=len(Qtables)) > 0.5):
+            if should_add:
+                Qtables[i].add_one_visit(s, Qvalues)
         return val + r
 
     rewards = vec_interact(Q, episodes, env_fn, nenvs, my_step, 0, seed=seed)
@@ -223,7 +229,7 @@ if __name__ == "__main__":
         print_reward(episodes, score[0], score[1])
         if record:
             record_video(
-                policy_to_q_function(tree, Qtable.nactions, 4),
+                policy_to_q_function(tree, total_Qtable.nactions, 4),
                 env_fn,
                 4,
                 "./videos",
@@ -236,7 +242,7 @@ if __name__ == "__main__":
     for method in methods_todo:
         run_method(
             space,
-            Qtable,
+            Qtables if ntrees > 1 else total_Qtable,
             max_depth,
             method,
             seed,
