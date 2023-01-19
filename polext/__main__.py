@@ -120,6 +120,12 @@ if __name__ == "__main__":
         action="store_true",
         help="use VIPER method",
     )
+    parser.add_argument(
+        "--samples",
+        type=int,
+        required="--viper" in sys.argv,
+        help="samples used for viper method",
+    )
 
     parser.add_argument(
         "--iterations",
@@ -151,6 +157,7 @@ if __name__ == "__main__":
     nenvs: int = parameters.n
     record: bool = parameters.record
     use_viper: bool = parameters.viper
+    samples: int = parameters.samples
 
     # Parameters check
     if episodes < 1:
@@ -224,7 +231,7 @@ if __name__ == "__main__":
             env_fn=env_fn,
             nenvs=nenvs,
             iterations=iterations,
-            samples=episodes,
+            samples=samples,
             **kwargs,
         )
     else:
