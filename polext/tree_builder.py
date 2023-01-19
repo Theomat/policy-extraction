@@ -24,7 +24,7 @@ def regret(
         Qvals = Qtable[s]
         if Qvals is None:
             continue
-        regret += np.max(Qvals) - Qvals[tree(s, space)]
+        regret += np.max(Qvals) - Qvals[tree.eval_pred_space(s, space)]
     return regret
 
 
