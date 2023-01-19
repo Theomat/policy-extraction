@@ -66,14 +66,12 @@ def __builder__(
         split_gini = (left_gini * total_len_left + right_gini * total_len_right) / (
             total_len_right + total_len_left
         )
-        print("\t splti with", predicate, "obtained Gini:", split_gini, "parent:", parent_gini)
         if split_gini < parent_gini:
             found_split = True
             split = predicate
             data = (left_a, left_gini, right_a, right_gini)
 
     if not found_split:
-        print("no further spit found:", parent_gini)
         return __leaf__(actions)
     (left_a, left_gini, right_a, right_gini) = data  # type: ignore
     left_space, right_space = space.split(split)  # type: ignore
