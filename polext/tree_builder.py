@@ -72,15 +72,17 @@ def __iterate__(
 ) -> Generator[Tuple[Callable[[S], int], Tuple[float, float]], None, None]:
     tree = builder(space, qtable, max_depth, seed=seed, **kwargs)  # type: ignore
     tree.seed(seed)
+    actual_nenvs = min(nenvs, episodes)
     if iterations <= 1:
+
         yield (
             tree,
             vec_eval_policy(
                 tree,
                 episodes,
                 env_fn,
-                nenvs,
-                qtable.nactions,
+                actual_nenvs,
+                qtable.nactions if not isinstance(qtable, List) else qtable[0].nactions,
                 seed=seed,
             ),
         )
@@ -105,7 +107,6 @@ def __iterate__(
         )
         return rew + r
 
-    actual_nenvs = min(nenvs, episodes)
     total_rewards = vec_interact(
         policy_to_q_function(tree, qtable.nactions, actual_nenvs),
         episodes,
