@@ -68,7 +68,7 @@ def __resample__(
     n = len(dataset)
     probs = np.array([d for _, __, d in dataset])
     probs /= np.sum(probs)
-    return rng.choice(dataset, size=n, p=probs, replace=True)  # type: ignore
+    return rng.choice(np.array(dataset, dtype=object), size=n, p=probs, replace=True)  # type: ignore
 
 
 def __best_policy__(
