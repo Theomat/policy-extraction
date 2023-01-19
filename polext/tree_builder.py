@@ -12,6 +12,7 @@ from polext.interaction_helper import (
     vec_interact,
     vec_eval_policy,
 )
+import polext.viper as viper
 
 S = TypeVar("S")
 
@@ -46,8 +47,15 @@ class TreeBuildingAlgo:
 __TREE_BUILDING_ALGOS__ = {}
 
 
-def register(algorithm: TreeBuildingAlgo) -> None:
+def register(algorithm: TreeBuildingAlgo, register_viper: bool = False) -> None:
     __TREE_BUILDING_ALGOS__[algorithm.name.lower().strip()] = algorithm
+    if register_viper:
+        viper.register(
+            viper.ViperAlgo(
+                algorithm.name,
+                viper.__viper_wrapper__(algorithm.name, build_tree),
+            )
+        )
 
 
 def list_registered_algorithms() -> List[str]:
@@ -154,12 +162,11 @@ def __iterate__(
 
 
 def __forest__(
-    builder: Callable[[PredicateSpace[S], QValuesLearner, int, int], DecisionTree[S]],
-    ntrees: int,
+    builder: Callable[[PredicateSpace[S], QValuesLearner, int, int], DecisionTree[S]]
 ) -> Callable[[PredicateSpace[S], QValuesLearner, int, int], Forest[S]]:
     def f(
         space: PredicateSpace[S],
-        qtable: QValuesLearner,
+        qtables: List[QValuesLearner],
         max_depth: int,
         seed: int,
         **kwargs,
@@ -168,7 +175,7 @@ def __forest__(
         return Forest(
             [
                 builder(next(gen), qtable, max_depth, seed=seed, **kwargs)  # type: ignore
-                for _ in range(ntrees)
+                for qtable in qtables
             ]
         )
 
@@ -177,7 +184,7 @@ def __forest__(
 
 def build_tree(
     space: PredicateSpace[S],
-    qtable: QValuesLearner,
+    qtables: List[QValuesLearner],
     max_depth: int,
     method: str,
     Qfun: Callable[[S], np.ndarray],
@@ -191,9 +198,9 @@ def build_tree(
 ) -> Generator[Tuple[DecisionTree[S], Tuple[float, float]], None, None]:
     basic_tree = __TREE_BUILDING_ALGOS__[method.lower().strip()].method
     return __iterate__(
-        basic_tree if trees <= 1 else __forest__(basic_tree, trees),
+        basic_tree if trees <= 1 else __forest__(basic_tree),
         space,
-        qtable,
+        qtables,
         max_depth,
         method,
         Qfun,
