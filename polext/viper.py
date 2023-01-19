@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Tuple, TypeVar, Union
+from typing import Callable, Generator, List, Optional, Tuple, TypeVar, Union
 
 import numpy as np
 
@@ -36,6 +36,7 @@ def __viper_wrapper__(name: str, build_tree: Callable) -> Callable:
     def f(
         space: PredicateSpace[S],
         dataset: List[Tuple[Tuple[bool, ...], np.ndarray, float]],
+        max_depth: int,
         env_fn: Callable,
         nenvs: int,
         seed: Optional[int],
@@ -46,7 +47,15 @@ def __viper_wrapper__(name: str, build_tree: Callable) -> Callable:
             ps = new_space.get_representative(s)
             qtable.add_one_visit(ps, q)
         for tree, _, __ in build_tree(
-            new_space, qtable, 20, name, None, env_fn, nenvs, seed=seed, episodes=0
+            new_space,
+            qtable,
+            max_depth,
+            name,
+            None,
+            env_fn,
+            nenvs,
+            seed=seed,
+            episodes=0,
         ):
             return tree
 
@@ -85,6 +94,7 @@ def __best_policy__(
 def viper(
     space: PredicateSpace[S],
     qtable: QValuesLearner,
+    max_depth: int,
     method: str,
     Qfun: Callable[[S], np.ndarray],
     env_fn: Callable,
@@ -92,7 +102,7 @@ def viper(
     iterations: int,
     samples: int,
     seed: Optional[int] = None,
-) -> Tuple[DecisionTree[S], Tuple[float, float]]:
+) -> Generator[Tuple[DecisionTree[S], Tuple[float, float]], None, None]:
     dataset = []
     policy: Union[Callable[[S], np.ndarray], DecisionTree[S]] = Qfun
     policies = []
@@ -129,7 +139,7 @@ def viper(
             seed,
         )
         dataset_prime = __resample__(dataset, rng)
-        policy = basic_tree(space, dataset_prime)
+        policy = basic_tree(space, dataset_prime, max_depth, env_fn, nenvs, seed)
         policies.append(policy)
 
-    return __best_policy__(policies, env_fn, nenvs, qtable.nactions, samples, seed)
+    yield __best_policy__(policies, env_fn, nenvs, qtable.nactions, samples, seed)
