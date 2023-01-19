@@ -126,7 +126,7 @@ def __iterate__(
     # next_qtable.reset_Q()
 
     for st, action, r, stp1, done in replay_buffer[::-1]:
-        alpha = 0.5 / next_qtable.state_visits(st)
+        alpha = 0.25 / next_qtable.state_visits(st)
         next_qtable.learn_qvalues(st, action, r, stp1, done, alpha, gamma)
 
     # Mix the two Qtables
