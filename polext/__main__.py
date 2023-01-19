@@ -217,7 +217,7 @@ if __name__ == "__main__":
 
     eval_fn = vec_eval_policy
 
-    if viper:
+    if use_viper:
         builder = lambda *args, **kwargs: viper.viper(
             *args,
             Qfun=Q,
@@ -225,22 +225,8 @@ if __name__ == "__main__":
             nenvs=nenvs,
             iterations=iterations,
             samples=episodes,
-            *kwargs,
+            **kwargs,
         )
-        builder2 = lambda *args, **kwargs: viper.viper(
-            *args,
-            Qfun=Q,
-            env_fn=env_fn,
-            nenvs=nenvs,
-            iterations=iterations,
-            samples=episodes,
-            *kwargs,
-        )
-        def w(*args, **kwargs):
-            print("there are", len(args), "positional:", args)
-            print("there are", len(kwargs), "keywords:", kwargs)
-            return builder2(*args, **kwargs)
-        builder = w
     else:
         builder = lambda *args, **kwargs: tree_builder.build_tree(
             *args,
