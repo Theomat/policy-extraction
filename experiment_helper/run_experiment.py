@@ -110,7 +110,7 @@ def run_viper(
             method = line[len("Method:") :]
             if "iteration" in method:
                 method = method[: method.index("iteration")].strip()
-        elif "mean=" in line:
+        elif "mean=" in line and method != "dqn":
             data[f"viper-{method}-d={depth}"] = {f"{seed}": extract_score(line)}
     return data
 
