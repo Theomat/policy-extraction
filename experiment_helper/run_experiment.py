@@ -99,7 +99,7 @@ def run_viper(
     iterations: int,
     nenvs: int,
 ) -> dict:
-    cmd = f"python -m polext {env_path} logs_{seed}/dqn/{env_id}_1/best_model.zip {methods} {episodes} --depth {depth} --iterations {iterations} --samples {samples} -n {nenvs} --seed {seed}".split(
+    cmd = f"python -m polext {env_path} logs_{seed}/dqn/{env_id}_1/best_model.zip {methods} {episodes} --depth {depth} --iterations {iterations} --samples {samples} -n {nenvs} --seed {seed} --viper".split(
         " "
     )
     output = exec_cmd(cmd)
