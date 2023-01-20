@@ -88,6 +88,33 @@ def run_trees(
     return data
 
 
+def run_viper(
+    env_path: str,
+    methods: str,
+    seed: int,
+    episodes: int,
+    samples: int,
+    env_id: str,
+    depth: int,
+    iterations: int,
+    nenvs: int,
+) -> dict:
+    cmd = f"python -m polext {env_path} logs_{seed}/dqn/{env_id}_1/best_model.zip {methods} {episodes} --depth {depth} --iterations {iterations} --samples {samples} -n {nenvs} --seed {seed}".split(
+        " "
+    )
+    output = exec_cmd(cmd)
+    method = "dqn"
+    data = {}
+    for line in output.splitlines():
+        if line.startswith("Method:"):
+            method = line[len("Method:") :]
+            if "iteration" in method:
+                method = method[: method.index("iteration")].strip()
+        elif "mean=" in line:
+            data[f"viper-{method}-d={depth}"] = {f"{seed}": extract_score(line)}
+    return data
+
+
 def find_env_path(env_name: str) -> str:
     for file in os.listdir("./finite/"):
         if os.path.isdir(os.path.join("./finite/", file)) and env_name in file.lower():
@@ -140,6 +167,19 @@ def has_key_for_depth_for_seed(score_dict: dict, depth: int, seed: int) -> bool:
     for key in keys:
         if isinstance(key, str) and "-d=" in key and "-it=" in key:
             mdepth = int(key[key.find("-d=") + 3 : key.find("-it=")])
+            relevant.add(key.replace(f"-d={mdepth}", f"-d={depth}"))
+    return (
+        all(has_key_for_seed(score_dict, key, seed) for key in relevant)
+        and len(relevant) > 0
+    )
+
+
+def has_key_for_depth_for_seed_viper(score_dict: dict, depth: int, seed: int) -> bool:
+    keys = list(score_dict.keys())
+    relevant = set()
+    for key in keys:
+        if isinstance(key, str) and "-d=" in key and "viper-" in key:
+            mdepth = int(key[key.find("-d=") + 3 :])
             relevant.add(key.replace(f"-d={mdepth}", f"-d={depth}"))
     return (
         all(has_key_for_seed(score_dict, key, seed) for key in relevant)
@@ -200,6 +240,18 @@ if __name__ == "__main__":
         default="1",
         help="max number of iterations to test",
     )
+    parser.add_argument(
+        "--viper-iterations",
+        type=str,
+        default="1",
+        help="max number of iterations to test",
+    )
+    parser.add_argument(
+        "--samples",
+        type=str,
+        default="1",
+        help="samples",
+    )
 
     parameters = parser.parse_args()
     env_name: str = parameters.env_name
@@ -209,6 +261,8 @@ if __name__ == "__main__":
     nenvs: int = parameters.n
     output: str = parameters.output
     iterations: int = parameters.iterations
+    viper_iterations: int = parameters.viper_iterations
+    samples: int = parameters.samples
 
     depths = parse_set(parameters.depths)
 
@@ -250,16 +304,32 @@ if __name__ == "__main__":
             with open(output, "w") as fd:
                 json.dump(all_data, fd)
         for depth in depths:
-            if has_key_for_depth_for_seed(all_data, depth, seed):
-                continue
-            pbar.set_postfix_str(f"Trees d={depth}")
-            score_dict = run_trees(
-                env_path, methods, seed, episodes, env_id, depth, iterations, nenvs
-            )
-            union(all_data, score_dict)
-            # Save
-            with open(output, "w") as fd:
-                json.dump(all_data, fd)
+            if not has_key_for_depth_for_seed(all_data, depth, seed):
+                pbar.set_postfix_str(f"Trees d={depth}")
+                score_dict = run_trees(
+                    env_path, methods, seed, episodes, env_id, depth, iterations, nenvs
+                )
+                union(all_data, score_dict)
+                # Save
+                with open(output, "w") as fd:
+                    json.dump(all_data, fd)
+            if not has_key_for_depth_for_seed_viper(all_data, depth, seed):
+                pbar.set_postfix_str(f"viper Trees d={depth}")
+                score_dict = run_viper(
+                    env_path,
+                    methods,
+                    seed,
+                    episodes,
+                    samples,
+                    env_id,
+                    depth,
+                    viper_iterations,
+                    nenvs,
+                )
+                union(all_data, score_dict)
+                # Save
+                with open(output, "w") as fd:
+                    json.dump(all_data, fd)
         all_data[seed] = True
         # Save data periodically
         with open(output, "w") as fd:
