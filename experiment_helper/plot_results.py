@@ -46,9 +46,13 @@ if __name__ == "__main__":
         dest="data",
         help="data file",
     )
+    parser.add_argument(
+        "--iterations", action="store_true", help="show iterations results"
+    )
 
     parameters = parser.parse_args()
     data_file: str = parameters.data
+    show_it: bool = parameters.iterations
     import os
 
     filename = os.path.basename(data_file)
@@ -81,6 +85,11 @@ if __name__ == "__main__":
 
             depths.append(depth)
             iterations.append(iteration)
+        if "viper-" in method and "-d=" in method:
+            base_name = method[: method.find("-d=")]
+            if base_name not in variants:
+                variants[base_name] = []
+            variants[base_name].append(method)
 
     iterations = sorted(x for x in iterations if x > 0)
     depths = sorted(depths)
@@ -108,17 +117,18 @@ if __name__ == "__main__":
             saved = True
         del score_dict[variant]
 
-    # Plot with respect to iterations
-    new_dict = {}
-    for method, x in score_dict.items():
-        if "-d=" in method and "-it=" in method:
-            depth = int(method[method.find("-d=") + 3 : method.find("-it=")])
-            if depth == depths[-1]:
-                new_dict[method.replace(f"-d={depth}", "")] = x
-        else:
-            new_dict[method] = x
+    if show_it:
+        # Plot with respect to iterations
+        new_dict = {}
+        for method, x in score_dict.items():
+            if "-d=" in method and "-it=" in method:
+                depth = int(method[method.find("-d=") + 3 : method.find("-it=")])
+                if depth == depths[-1]:
+                    new_dict[method.replace(f"-d={depth}", "")] = x
+            else:
+                new_dict[method] = x
 
-    easy_plot(new_dict, f"{filename}_performance_with_iterations.png")
+        easy_plot(new_dict, f"{filename}_performance_with_iterations.png")
 
     new_dict = {}
     for method, x in score_dict.items():
@@ -140,10 +150,22 @@ if __name__ == "__main__":
     for name in variants:
         if name == "dqn":
             continue
-        all_scores = [score_dict[f"{name}-d={depths[-1]}-it={it}"] for it in iterations]
-        some_list = [(np.mean(s), -np.std(s), i) for i, s in enumerate(all_scores)]
-        some_list = sorted(some_list)
-        best_score[name] = all_scores[some_list[-1][2]]
+        if "viper-" in name:
+            best_score[name] = score_dict[f"{name}-d={depths[-1]}"]
+        else:
+            if show_it:
+                all_scores = [
+                    score_dict[f"{name}-d={depths[-1]}-it={it}"] for it in iterations
+                ]
+                some_list = [
+                    (np.mean(s), -np.std(s), i) for i, s in enumerate(all_scores)
+                ]
+                some_list = sorted(some_list)
+                best_score[name] = all_scores[some_list[-1][2]]
+            else:
+                best_score[name] = score_dict[
+                    f"{name}-d={depths[-1]}-it={iterations[0]}"
+                ]
         compared_dict[f"{name},dqn"] = (best_score[name], dqn_perf)
 
     average_probabilities, average_prob_cis = rly.get_interval_estimates(
@@ -176,20 +198,42 @@ if __name__ == "__main__":
     plt.savefig(f"{filename}_perf_cmp_discrete_dqn.png", dpi=500)
     plt.show()
 
+    if show_it:
+        compared_dict = {}
+
+        for name in variants:
+            if name == "dqn":
+                continue
+            base_score = score_dict[f"{name}-d={depths[-1]}-it=1"]
+            all_scores = [
+                score_dict[f"{name}-d={depths[-1]}-it={it}"] for it in iterations[1:]
+            ]
+            some_list = [(np.mean(s), -np.std(s), i) for i, s in enumerate(all_scores)]
+            some_list = sorted(some_list)
+            best_score = all_scores[some_list[-1][2]]
+            compared_dict[f"max({name}-it>1),{name}-it=1"] = (best_score, base_score)
+
+        average_probabilities, average_prob_cis = rly.get_interval_estimates(
+            compared_dict, metrics.probability_of_improvement, reps=1000
+        )
+        plot_utils.plot_probability_of_improvement(
+            average_probabilities, average_prob_cis, figsize=(8, 4)
+        )
+        plt.tight_layout()
+        plt.savefig(f"{filename}_perf_impr_iterations.png", dpi=500)
+        plt.show()
+
     compared_dict = {}
 
     for name in variants:
-        if name == "dqn":
+        if name == "dqn" or "viper-" not in name:
             continue
-        base_score = score_dict[f"{name}-d={depths[-1]}-it=1"]
-        all_scores = [
-            score_dict[f"{name}-d={depths[-1]}-it={it}"] for it in iterations[1:]
-        ]
-        some_list = [(np.mean(s), -np.std(s), i) for i, s in enumerate(all_scores)]
-        some_list = sorted(some_list)
-        best_score = all_scores[some_list[-1][2]]
-        compared_dict[f"max({name}-it>1),{name}-it=1"] = (best_score, base_score)
-
+        base_score = score_dict[f"{name}-d={depths[-1]}"]
+        sub_name = name[6:]
+        compared_dict[f"viper-{sub_name},{sub_name}"] = (
+            base_score,
+            best_score[sub_name],
+        )
     average_probabilities, average_prob_cis = rly.get_interval_estimates(
         compared_dict, metrics.probability_of_improvement, reps=1000
     )
@@ -197,5 +241,5 @@ if __name__ == "__main__":
         average_probabilities, average_prob_cis, figsize=(8, 4)
     )
     plt.tight_layout()
-    plt.savefig(f"{filename}_perf_impr_iterations.png", dpi=500)
+    plt.savefig(f"{filename}_perf_impr_viper.png", dpi=500)
     plt.show()
