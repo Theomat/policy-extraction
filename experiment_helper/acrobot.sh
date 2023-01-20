@@ -1,1 +1,1 @@
-python experiment_helper/run_experiment.py acrobot all 50 --seeds 10 -o acrobot.json --iterations 5 --depths 5,7,12
+python experiment_helper/run_experiment.py acrobot all 50 --seeds 10 -o acrobot.json --iterations 5 --depths 5,7,12 --viper-iterations 10 --samples 10
