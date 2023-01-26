@@ -202,7 +202,7 @@ if __name__ == "__main__":
         compared_dict = {}
 
         for name in variants:
-            if name == "dqn":
+            if name == "dqn" or "viper-" in name:
                 continue
             base_score = score_dict[f"{name}-d={depths[-1]}-it=1"]
             all_scores = [
@@ -210,8 +210,8 @@ if __name__ == "__main__":
             ]
             some_list = [(np.mean(s), -np.std(s), i) for i, s in enumerate(all_scores)]
             some_list = sorted(some_list)
-            best_score = all_scores[some_list[-1][2]]
-            compared_dict[f"max({name}-it>1),{name}-it=1"] = (best_score, base_score)
+            score = all_scores[some_list[-1][2]]
+            compared_dict[f"max({name}-it>1),{name}-it=1"] = (score, base_score)
 
         average_probabilities, average_prob_cis = rly.get_interval_estimates(
             compared_dict, metrics.probability_of_improvement, reps=1000
