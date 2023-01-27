@@ -1,6 +1,6 @@
 atari:
-  batch_size: 32
-  buffer_size: 100000
+  batch_size: 128
+  buffer_size: 50000
   env_wrapper:
   - stable_baselines3.common.atari_wrappers.NoopResetEnv
   - stable_baselines3.common.atari_wrappers.MaxAndSkipEnv
@@ -8,11 +8,12 @@ atari:
   - stable_baselines3.common.atari_wrappers.ClipRewardEnv
   exploration_final_eps: 0.01
   exploration_fraction: 0.1
-  gradient_steps: 1
-  learning_rate: 0.0001
-  learning_starts: 100000
-  n_timesteps: 10000000.0
+  gradient_steps: -1
+  learning_rate: 0.00025
+  learning_starts: 50000
+  n_timesteps: 5000000.0
   optimize_memory_usage: false
   policy: MlpPolicy
+  policy_kwargs: "dict(net_arch=[256, 256])"
   target_update_interval: 1000
   train_freq: 4
