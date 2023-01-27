@@ -30,6 +30,9 @@ def train_base_dqn(env_id: str, seed: int) -> None:
     cmd = f"python -m rl_zoo3.train --algo dqn --env {env_id} -f logs_{seed}/ --seed {seed}".split(
         " "
     )
+    if "Pong" in env_id:
+        cmd.append("--yaml")
+        cmd.append("./infinite/pong/config.yml")
     exec_cmd(cmd)
 
 

@@ -8,7 +8,15 @@ from stable_baselines3.common.vec_env.base_vec_env import (
     VecEnvStepReturn,
     VecEnvObs,
 )
-from stable_baselines3.common.env_util import make_atari_env
+from stable_baselines3.common.atari_wrappers import (
+    NoopResetEnv,
+    ClipRewardEnv,
+    MaxAndSkipEnv,
+    EpisodicLifeEnv,
+)
+from stable_baselines3.common.env_util import make_vec_env
+
+import gym
 
 from polext import Predicate
 
@@ -37,13 +45,32 @@ class VecActionWrapper(VecEnvWrapper):
         return self.venv.reset()
 
 
+def atari_wrap(
+    env,
+    noop_max: int = 30,
+    frame_skip: int = 4,
+    terminal_on_life_loss: bool = True,
+    clip_reward: bool = True,
+):
+    env = NoopResetEnv(env, noop_max=noop_max)
+    env = MaxAndSkipEnv(env, skip=frame_skip)
+    if terminal_on_life_loss:
+        env = EpisodicLifeEnv(env)
+    if clip_reward:
+        env = ClipRewardEnv(env)
+    return env
+
+
 make_env = lambda: VecActionWrapper(
-    VecFrameStack(make_atari_env("PongNoFrameskip-v4"), 4)
+    make_vec_env(
+        atari_wrap(gym.make("Pong-ram-v4")),
+        wrapper_kwargs={"resize": False, "grayscale": False},
+    )
 )
 
 
 def Q_builder(path: str) -> Callable[[np.ndarray], np.ndarray]:
-    model = DQN("CnnPolicy", make_env(), buffer_size=0)
+    model = DQN("MlpPolicy", make_env(), buffer_size=0)
     model = model.load(path, buffer_size=0)
 
     def f(observation: np.ndarray) -> np.ndarray:
