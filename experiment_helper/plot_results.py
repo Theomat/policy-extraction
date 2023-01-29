@@ -61,13 +61,9 @@ if __name__ == "__main__":
         dest="data",
         help="data file",
     )
-    parser.add_argument(
-        "--iterations", action="store_true", help="show iterations results"
-    )
 
     parameters = parser.parse_args()
     data_file: str = parameters.data
-    show_it: bool = parameters.iterations
     import os
 
     filename = os.path.basename(data_file)
@@ -138,8 +134,6 @@ if __name__ == "__main__":
     score_dict[QUOTIENT_DQN] = np.array(list(all_data[QUOTIENT_DQN].values())).reshape(
         (-1, 1)
     )
-    # print("Score dict:", list(score_dict.keys()))
-    # score_dict = {key: np.array(list(values.values())).reshape((-1, 1)) for key, values in all_data.items() if key not in seeds}
 
     # Delete copies of DQN
     saved = False
@@ -148,21 +142,6 @@ if __name__ == "__main__":
             score_dict[DQN] = score_dict[variant]
             saved = True
         del score_dict[variant]
-
-    # if show_it:
-    #     # Plot with respect to iterations
-    #     new_dict = {}
-    #     for method, x in score_dict.items():
-    #         if VIPER in method:
-    #             continue
-    #         if "-d=" in method and "-it=" in method:
-    #             depth = int(method[method.find("-d=") + 3 : method.find("-it=")])
-    #             if depth == depths[-1]:
-    #                 new_dict[method.replace(f"-d={depth}", "").replace("-", " ")] = x
-    #         else:
-    #             new_dict[method.replace("-", " ")] = x
-
-    #     easy_plot(new_dict, f"{filename}_performance_with_iterations.png")
 
     # Plot Global performances
     new_dict = {}
@@ -213,10 +192,10 @@ if __name__ == "__main__":
         if name == DQN:
             continue
         if f"{VIPER}-" in name:
-            best_score[name.replace("-", " ")] = score_dict[f"{name}-d={depths[-1]}"]
+            best_score[name] = score_dict[f"{name}-d={depths[-1]}"]
         else:
             best_score[name] = score_dict[f"{name}-d={depths[-1]}-it={PTE_ITERATION}"]
-        compared_dict[f"{name},{DQN}"] = (best_score[name], dqn_perf)
+        compared_dict[f"{name.replace('-', ' ')},{DQN}"] = (best_score[name], dqn_perf)
 
     average_probabilities, average_prob_cis = rly.get_interval_estimates(
         compared_dict, metrics.probability_of_improvement, reps=1000
@@ -251,11 +230,11 @@ if __name__ == "__main__":
     plt.savefig(f"{filename}_perf_cmp_discrete_dqn.png", dpi=500)
     plt.show()
 
-    if show_it and len(iterations) > 1:
+    if len(iterations) > 1:
         compared_dict = {}
 
         for name in variants:
-            if name == DQN or "{VIPER}-" in name:
+            if name == DQN or f"{VIPER}-" in name:
                 continue
             base_score = score_dict[f"{name}-d={depths[-1]}-it=1"]
             pte_score = score_dict[f"{name}-d={depths[-1]}-it=2"]
