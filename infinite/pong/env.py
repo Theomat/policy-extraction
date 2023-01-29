@@ -160,11 +160,9 @@ def Q_builder(path: str) -> Callable[[np.ndarray], np.ndarray]:
 
     def f(observation: np.ndarray) -> np.ndarray:
         obs = torch.tensor(observation, device=model.device)
-        batched = len(obs.shape) == 4 and obs.shape[0] > 1
-        if not batched and len(obs.shape) < 4:
+        batched = len(obs.shape) == 2 and obs.shape[0] > 1
+        if not batched:
             obs.unsqueeze_(0)
-        obs.swapdims_(1, 3).swapdims_(2, 3)
-
         with torch.no_grad():
             q_values = model.q_net(obs).cpu().numpy()
         if batched:
@@ -173,23 +171,6 @@ def Q_builder(path: str) -> Callable[[np.ndarray], np.ndarray]:
             return q_values[0]
 
     return f
-
-
-def listify(x):
-    if isinstance(x, tuple):
-        return [listify(y) for y in x]
-    return x
-
-
-def ready(obs):
-    if isinstance(obs, tuple):
-        obs = np.asarray(listify(obs))
-    if isinstance(obs, np.ndarray):
-        nobs = np.asarray(obs)
-        if len(nobs.shape) == 4:
-            nobs = nobs[0]
-        return nobs
-    return obs
 
 
 predicates = []
@@ -201,15 +182,24 @@ BALL_SIZE = 1.0 / MAX_Y
 bins = 10
 
 states_arrays = [
-    ("ball x", np.linspace(-1.0, +1.0, num=bins, endpoint=False)),
-    ("ball y", np.linspace(-1.0, +1.0, num=bins, endpoint=False)),
-    ("ball vx", np.linspace(-1.0, +1.0, num=bins, endpoint=False)),
+    ("ball x", np.linspace(0, +1.0, num=bins, endpoint=False)),
+    ("ball y", np.linspace(0, +1.0, num=bins, endpoint=False)),
+    ("ball vx", np.linspace(-0.1, +1.0, num=bins, endpoint=False)),
     ("ball vy", np.linspace(-1.0, +1.0, num=bins, endpoint=False)),
-    ("paddle y", np.linspace(-1, +1, num=bins, endpoint=False)),
+    ("paddle y", np.linspace(0, +1, num=bins, endpoint=False)),
     ("paddle vy", np.linspace(-1, +1, num=bins, endpoint=False)),
     ("paddle ay", np.linspace(-1, +1, num=bins, endpoint=False)),
     ("paddle jy", np.linspace(-1, +1, num=bins, endpoint=False)),
 ]
+
+
+def __ready__(f):
+    def g(s):
+        if len(s.shape) == 2:
+            return f(s[0])
+        return f(s)
+
+    return g
 
 
 def pred(i: int, val: float):
@@ -222,20 +212,21 @@ def pred(i: int, val: float):
 predicates = []
 for i, (name, array) in enumerate(states_arrays):
     for el in array:
-        predicates.append(Predicate(f"{name} >= {el:.2e}", pred(i, el)))
+        predicates.append(Predicate(f"{name} >= {el:.2e}", __ready__(pred(i, el))))
 
 predicates.append(
     Predicate(
         f"paddle too low to hit ball",
-        lambda obs: obs[1] > obs[4] + PADDLE_HEIGHT,
+        __ready__(lambda obs: obs[1] - obs[4] > PADDLE_HEIGHT),
     )
 )
 predicates.append(
     Predicate(
         f"paddle too high to hit ball",
-        lambda obs: obs[1] + BALL_SIZE < obs[4],
+        __ready__(lambda obs: obs[1] - obs[4] + BALL_SIZE < 0),
     )
 )
+
 if __name__ == "__main__":
     from matplotlib import pyplot as plt
 
