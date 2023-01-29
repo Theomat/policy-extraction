@@ -1,1 +1,1 @@
-python experiment_helper/run_experiment.py pong all 100 --seeds 10 -o pong.json --iterations 5 --depths 5,12,16
+python experiment_helper/run_experiment.py pong all 100 --seeds 5 -o pong.json --iterations 2 --depths 3,6,10
