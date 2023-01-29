@@ -1,1 +1,1 @@
-python experiment_helper/run_experiment.py lunar-lander all 50 --seeds 5 -o lunar-lander.json --iterations 2 --depths 15,30,45 --viper-iterations 20 --samples 10
+python experiment_helper/run_experiment.py lunar-lander all 50 --seeds 5 -o lunar-lander.json --iterations 2 --depths 15,22,30 --viper-iterations 60 --samples 10
