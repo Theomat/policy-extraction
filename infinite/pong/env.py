@@ -1,21 +1,14 @@
-from typing import Callable, Tuple
+from typing import Callable, List, Tuple
 import numpy as np
 from stable_baselines3 import DQN
-from stable_baselines3.common.vec_env.vec_frame_stack import VecFrameStack
 from stable_baselines3.common.vec_env.base_vec_env import (
     VecEnvWrapper,
     VecEnv,
     VecEnvStepReturn,
     VecEnvObs,
 )
-from stable_baselines3.common.atari_wrappers import (
-    NoopResetEnv,
-    ClipRewardEnv,
-    MaxAndSkipEnv,
-    EpisodicLifeEnv,
-)
-from stable_baselines3.common.env_util import make_vec_env
-
+from stable_baselines3.common.env_util import make_atari_env
+from gym.spaces.box import Box
 import gym
 
 from polext import Predicate
@@ -45,27 +38,119 @@ class VecActionWrapper(VecEnvWrapper):
         return self.venv.reset()
 
 
-def atari_wrap(
-    env,
-    noop_max: int = 30,
-    frame_skip: int = 4,
-    terminal_on_life_loss: bool = True,
-    clip_reward: bool = True,
-):
-    env = NoopResetEnv(env, noop_max=noop_max)
-    env = MaxAndSkipEnv(env, skip=frame_skip)
-    if terminal_on_life_loss:
-        env = EpisodicLifeEnv(env)
-    if clip_reward:
-        env = ClipRewardEnv(env)
-    return env
+MAX_Y = 63.0
+MY_PADDLE_X = 73
+ENEMY_PADDLE_X = 10
+X_LENGTH = MY_PADDLE_X - ENEMY_PADDLE_X
+
+
+def get_paddle_y(paddle: int, img: np.ndarray) -> int:
+    return np.argmax(img[:, paddle] != 87)  # type: ignore
+
+
+def get_ball_pos(img: np.ndarray) -> Tuple[int, int]:
+    tmp = img[:, ENEMY_PADDLE_X + 1 : MY_PADDLE_X] != 87
+    y = np.max(np.argmax(tmp, axis=0, keepdims=True))
+    return np.argmax(tmp[y]) + ENEMY_PADDLE_X + 1, y  # type: ignore
+
+
+def __extract__(obs: np.ndarray) -> List:
+    if len(obs.shape) == 4:
+        return [__extract__(v) for v in obs]
+    obs = obs[14:76]
+    y_paddle = get_paddle_y(MY_PADDLE_X, obs)
+    x, y = get_ball_pos(obs)
+    return [y_paddle / MAX_Y, (x - (ENEMY_PADDLE_X + 1)) / X_LENGTH, y / MAX_Y]
+
+
+def __obs__(pobs: List, history: List[np.ndarray], add: bool = True) -> np.ndarray:
+    if isinstance(pobs[0], List):
+        out = np.asarray(
+            [
+                __obs__(pobs[i], [x[i] for x in history], add=False)
+                for i in range(len(pobs))
+            ]
+        )
+    else:
+        out = np.zeros((8), dtype=float)
+        # ball x, y
+        out[0] = pobs[1]
+        out[1] = pobs[2]
+        # paddle y
+        out[4] = pobs[0]
+        if len(history) > 0:
+            # paddle vy
+            out[5] = out[4] - history[-1][4]
+            # ball vx, vy
+            out[2] = out[0] - history[-1][0]
+            out[3] = out[1] - history[-1][1]
+            if len(history) > 1:
+                # paddle ay
+                out[6] = out[5] - history[-2][5]
+                if len(history) > 2:
+                    # paddle jy
+                    out[7] = out[6] - history[-3][6]
+
+    if add:
+        history.append(out)
+        if len(history) > 3:
+            history.pop(0)
+    return out
+
+
+class RLZooObservationWrapper(gym.ObservationWrapper):
+    """
+    Used only by RL ZOO to train pong
+    """
+
+    def __init__(self, env: gym.Env):
+        gym.ObservationWrapper.__init__(self, env)
+        self.observation_space = Box(
+            np.array([0, 0, -1, -1, 0, -1, -2, -4.0]),
+            np.array([1, 1, 1, 1, 1, 1, 2, 4.0]),
+            dtype=float,
+        )
+        self.history = []
+
+    def observation(self, obs: np.ndarray) -> np.ndarray:
+        pobs = __extract__(obs)
+        nobs = __obs__(pobs, self.history)
+        return nobs
+
+    def reset(self) -> np.ndarray:
+        self.history = []
+        return super().reset()
+
+
+class VecPongObservationWrapper(VecEnvWrapper):
+    def __init__(self, env: VecEnv) -> None:
+        super().__init__(env)
+        self.observation_space = Box(
+            np.array([0, 0, -1, -1, 0, -1, -2, -4.0]),
+            np.array([1, 1, 1, 1, 1, 1, 2, 4.0]),
+            dtype=float,
+        )
+        self.history = []
+
+    def step_async(self, actions: np.ndarray) -> None:
+        return self.venv.step_async(actions)
+
+    def step_wait(self) -> VecEnvStepReturn:
+        obs, r, done, info = self.venv.step_wait()
+        pobs = __extract__(obs)
+        nobs = __obs__(pobs, self.history)
+        return nobs, r, done, info
+
+    def reset(self) -> VecEnvObs:
+        obs = self.venv.reset()
+        pobs = __extract__(obs)
+        self.history = []
+        nobs = __obs__(pobs, self.history)
+        return nobs
 
 
 make_env = lambda: VecActionWrapper(
-    make_vec_env(
-        atari_wrap(gym.make("Pong-ram-v4")),
-        wrapper_kwargs={"resize": False, "grayscale": False},
-    )
+    VecPongObservationWrapper(make_atari_env("PongNoFrameskip-v4"))
 )
 
 
@@ -110,90 +195,58 @@ def ready(obs):
 predicates = []
 
 
-MY_PADDLE_X = 73
-ENEMY_PADDLE_X = 10
-PADDLE_HEIGHT = 7
-BALL_SIZE = 1
-# The lower the better, integer representing a pixel step
-PREDICATE_STEP = 10
+PADDLE_HEIGHT = 7.0 / MAX_Y
+BALL_SIZE = 1.0 / MAX_Y
+
+bins = 10
+
+states_arrays = [
+    ("ball x", np.linspace(-1.0, +1.0, num=bins, endpoint=False)),
+    ("ball y", np.linspace(-1.0, +1.0, num=bins, endpoint=False)),
+    ("ball vx", np.linspace(-1.0, +1.0, num=bins, endpoint=False)),
+    ("ball vy", np.linspace(-1.0, +1.0, num=bins, endpoint=False)),
+    ("paddle y", np.linspace(-1, +1, num=bins, endpoint=False)),
+    ("paddle vy", np.linspace(-1, +1, num=bins, endpoint=False)),
+    ("paddle ay", np.linspace(-1, +1, num=bins, endpoint=False)),
+    ("paddle jy", np.linspace(-1, +1, num=bins, endpoint=False)),
+]
 
 
-def get_paddle_y(paddle: int, img: np.ndarray) -> int:
-    return np.argmax(img[14:76, paddle] != 87)
-
-
-def get_ball_pos(img: np.ndarray, index: int = 3) -> Tuple[int, int]:
-    tmp = img[14:76, ENEMY_PADDLE_X + 1 : MY_PADDLE_X, index] != 87
-    x = np.max(np.argmax(tmp, axis=0, keepdims=True))
-    return x, np.argmax(tmp[x])
-
-
-def get_ball_speed(img: np.ndarray) -> Tuple[int, int]:
-    dx, dy = get_ball_pos(img, 3)
-    sx, sy = get_ball_pos(img, 0)
-    return dx - sx, dy - sy
-
-
-def make_pred(val: int, getter: Callable):
-    def f(obs):
-        return val <= getter(ready(obs))
+def pred(i: int, val: float):
+    def f(s) -> bool:
+        return s[i] >= val
 
     return f
 
 
-for i in range(ENEMY_PADDLE_X + 1, MY_PADDLE_X, PREDICATE_STEP):
-    predicates.append(
-        Predicate(f"ball x <= {i}", make_pred(i, lambda obs: get_ball_pos(obs)[0]))
-    )
-
-for i in range(0, 62, PREDICATE_STEP):
-    predicates.append(
-        Predicate(
-            f"my paddle y <= {i}",
-            make_pred(i, lambda obs: get_paddle_y(MY_PADDLE_X, obs)),
-        )
-    )
-    predicates.append(
-        Predicate(
-            f"enemy paddle y <= {i}",
-            make_pred(i, lambda obs: get_paddle_y(ENEMY_PADDLE_X, obs)),
-        )
-    )
-    predicates.append(
-        Predicate(f"ball y <= {i}", make_pred(i, lambda obs: get_ball_pos(obs)[1]))
-    )
-
-for i in range(7):
-    predicates.append(
-        Predicate(f"ball vx <= {i}", make_pred(i, lambda obs: get_ball_speed(obs)[0]))
-    )
-    predicates.append(
-        Predicate(f"ball vy <= {i}", make_pred(i, lambda obs: get_ball_speed(obs)[1]))
-    )
+predicates = []
+for i, (name, array) in enumerate(states_arrays):
+    for el in array:
+        predicates.append(Predicate(f"{name} >= {el:.2e}", pred(i, el)))
 
 predicates.append(
     Predicate(
-        f"my paddle too low to hit ball",
-        lambda obs: get_paddle_y(MY_PADDLE_X, ready(obs))
-        > get_ball_pos(ready(obs))[1] + BALL_SIZE,
+        f"paddle too low to hit ball",
+        lambda obs: obs[1] > obs[4] + PADDLE_HEIGHT,
     )
 )
 predicates.append(
     Predicate(
-        f"my paddle too high to hit ball",
-        lambda obs: get_paddle_y(MY_PADDLE_X, ready(obs)) + PADDLE_HEIGHT
-        < get_ball_pos(ready(obs))[1],
+        f"paddle too high to hit ball",
+        lambda obs: obs[1] + BALL_SIZE < obs[4],
     )
 )
-# if __name__ == "__main__":
-#     env = make_env()
-#     obs = env.reset()
-#     for i in range(400):
-#         obs = env.step([0])[0].squeeze(0)
-#     print(obs.shape)
+if __name__ == "__main__":
+    from matplotlib import pyplot as plt
+
+    env = make_env()
+    obs = env.reset()
+    for i in range(400):
+        obs = env.step([0])[0]
+        print(obs)
+    # print(obs.shape)
 #     for predicate in predicates:
 #         print(predicate.name, predicate(obs))
-#     from matplotlib import pyplot as plt
 #     plt.figure()
 #     for i in range(4):
 #         plt.subplot(1, 4, 1 + i)
@@ -202,5 +255,3 @@ predicates.append(
 # print("my paddle:", get_paddle_y(MY_PADDLE_X, obs))
 # print("enemy paddle:", get_paddle_y(ENEMY_PADDLE_X, obs))
 # print("ball pos:", get_ball(obs))
-# py =
-# print(py)
