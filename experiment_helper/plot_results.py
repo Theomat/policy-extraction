@@ -12,6 +12,21 @@ pub.setup()
 
 import numpy as np
 
+PTE_ITERATION = 2
+QUOTIENT_DQN = "Quotient MDP DQN"
+DQN = "DQN"
+VIPER = "VIPER"
+renaming = [("discrete-dqn", QUOTIENT_DQN)]
+method_renaming = [
+    ("dqn", DQN),
+    ("greedy-q", "Greedy Values"),
+    ("optimistic", "Optimistic"),
+    ("max-probability", "Max Probability"),
+    ("greedy-nactions", "Greedy Optimal Actions"),
+    ("entropy", "Adapted Entropy"),
+    ("gini", "Gini Index"),
+]
+prefix_renaming = [("viper", VIPER), ("", "PTE ")]
 
 aggregate_func = lambda x: np.array(
     [metrics.aggregate_median(x), metrics.aggregate_iqm(x), metrics.aggregate_mean(x)]
@@ -61,13 +76,29 @@ if __name__ == "__main__":
     # Load data
     with open(data_file) as fd:
         all_data = json.load(fd)
+        for old_name, new_name in renaming:
+            if old_name in all_data:
+                all_data[new_name] = all_data[old_name]
+                del all_data[old_name]
+        # Remove seeds
+        seeds = list(all_data[QUOTIENT_DQN].keys())
+        for seed in seeds:
+            del all_data[seed]
+        # Finish renaming
+        for key in list(all_data.keys()):
+            dst_name: str = key
+            for old_name, new_name in method_renaming:
+                if f"{old_name}-d=" in dst_name:
+                    dst_name = dst_name.replace(f"{old_name}-d=", f"{new_name}-d=")
+                    break
+            for old_name, new_name in prefix_renaming:
+                if dst_name.startswith(old_name) and DQN not in dst_name:
+                    dst_name = new_name + dst_name[len(old_name) :]
+                    break
+            if dst_name != key:
+                all_data[dst_name] = all_data[key]
+                del all_data[key]
 
-    methods = list(all_data.keys())
-
-    # Remove seeds
-    seeds = list(all_data["discrete-dqn"].keys())
-    for seed in seeds:
-        del all_data[seed]
     methods = list(all_data.keys())
     depths = []
     iterations = []
@@ -85,7 +116,7 @@ if __name__ == "__main__":
 
             depths.append(depth)
             iterations.append(iteration)
-        if "viper-" in method and "-d=" in method:
+        if f"{VIPER}-" in method and "-d=" in method:
             base_name = method[: method.find("-d=")]
             if base_name not in variants:
                 variants[base_name] = []
@@ -104,69 +135,88 @@ if __name__ == "__main__":
             score_dict[subname] = np.array(list(all_data[subname].values())).reshape(
                 (-1, 1)
             )
-    score_dict["discrete-dqn"] = np.array(
-        list(all_data["discrete-dqn"].values())
-    ).reshape((-1, 1))
+    score_dict[QUOTIENT_DQN] = np.array(list(all_data[QUOTIENT_DQN].values())).reshape(
+        (-1, 1)
+    )
+    # print("Score dict:", list(score_dict.keys()))
     # score_dict = {key: np.array(list(values.values())).reshape((-1, 1)) for key, values in all_data.items() if key not in seeds}
 
     # Delete copies of DQN
     saved = False
-    for variant in variants["dqn"]:
+    for variant in variants[DQN]:
         if not saved:
-            score_dict["dqn"] = score_dict[variant]
+            score_dict[DQN] = score_dict[variant]
             saved = True
         del score_dict[variant]
 
-    if show_it:
-        # Plot with respect to iterations
-        new_dict = {}
-        for method, x in score_dict.items():
-            if "-d=" in method and "-it=" in method:
-                depth = int(method[method.find("-d=") + 3 : method.find("-it=")])
-                if depth == depths[-1]:
-                    new_dict[method.replace(f"-d={depth}", "")] = x
-            else:
-                new_dict[method] = x
+    # if show_it:
+    #     # Plot with respect to iterations
+    #     new_dict = {}
+    #     for method, x in score_dict.items():
+    #         if VIPER in method:
+    #             continue
+    #         if "-d=" in method and "-it=" in method:
+    #             depth = int(method[method.find("-d=") + 3 : method.find("-it=")])
+    #             if depth == depths[-1]:
+    #                 new_dict[method.replace(f"-d={depth}", "").replace("-", " ")] = x
+    #         else:
+    #             new_dict[method.replace("-", " ")] = x
 
-        easy_plot(new_dict, f"{filename}_performance_with_iterations.png")
+    #     easy_plot(new_dict, f"{filename}_performance_with_iterations.png")
 
+    # Plot Global performances
     new_dict = {}
     for method, x in score_dict.items():
+        if "-d=" in method:
+            if "-it=" in method:
+                iteration = int(method[method.find("-it=") + 4 :])
+                depth = int(method[method.find("-d=") + 3 : method.find("-it=")])
+                if iteration != PTE_ITERATION:
+                    continue
+                method = method.replace(f"-it={iteration}", "")
+            else:
+                depth = int(method[method.find("-d=") + 3 :])
+            if depth == depths[-1]:
+                new_dict[method.replace(f"-d={depth}", "").replace("-", " ")] = x
+
+        else:
+            new_dict[method.replace("-", " ")] = x
+
+    to_ignore = ["PTE Gini Index"]
+    for x in to_ignore:
+        if x in new_dict:
+            del new_dict[x]
+
+    easy_plot(new_dict, f"{filename}_performance.png")
+
+    # Plot performances w.r.t. depth
+    new_dict = {}
+    for method, x in score_dict.items():
+        if DQN in method:
+            continue
         if "-d=" in method and "-it=" in method:
             iteration = int(method[method.find("-it=") + 4 :])
-            if iteration == iterations[0]:
-                new_dict[method.replace(f"-it={iteration}", "")] = x
+            if iteration == PTE_ITERATION:
+                new_dict[method.replace(f"-it={iteration}", "").replace("-", " ")] = x
         else:
-            new_dict[method] = x
+            new_dict[method.replace("-", " ")] = x
 
     easy_plot(new_dict, f"{filename}_performance_with_depth.png")
 
     # Load ProcGen scores as a dictionary containing pairs of normalized score
     # matrices for pairs of algorithms we want to compare
     compared_dict = {}
-    dqn_perf = score_dict["dqn"]
-    compared_dict["discrete-dqn,dqn"] = (score_dict["discrete-dqn"], dqn_perf)
+    dqn_perf = score_dict[DQN]
+    compared_dict[f"{QUOTIENT_DQN},{DQN}"] = (score_dict[QUOTIENT_DQN], dqn_perf)
     best_score = {}
     for name in variants:
-        if name == "dqn":
+        if name == DQN:
             continue
-        if "viper-" in name:
-            best_score[name] = score_dict[f"{name}-d={depths[-1]}"]
+        if f"{VIPER}-" in name:
+            best_score[name.replace("-", " ")] = score_dict[f"{name}-d={depths[-1]}"]
         else:
-            if show_it:
-                all_scores = [
-                    score_dict[f"{name}-d={depths[-1]}-it={it}"] for it in iterations
-                ]
-                some_list = [
-                    (np.mean(s), -np.std(s), i) for i, s in enumerate(all_scores)
-                ]
-                some_list = sorted(some_list)
-                best_score[name] = all_scores[some_list[-1][2]]
-            else:
-                best_score[name] = score_dict[
-                    f"{name}-d={depths[-1]}-it={iterations[0]}"
-                ]
-        compared_dict[f"{name},dqn"] = (best_score[name], dqn_perf)
+            best_score[name] = score_dict[f"{name}-d={depths[-1]}-it={PTE_ITERATION}"]
+        compared_dict[f"{name},{DQN}"] = (best_score[name], dqn_perf)
 
     average_probabilities, average_prob_cis = rly.get_interval_estimates(
         compared_dict, metrics.probability_of_improvement, reps=1000
@@ -180,13 +230,16 @@ if __name__ == "__main__":
     plt.show()
 
     compared_dict = {}
-    discrete_dqn_perf = score_dict["discrete-dqn"]
-    compared_dict["dqn,discrete-dqn"] = (dqn_perf, discrete_dqn_perf)
+    discrete_dqn_perf = score_dict[QUOTIENT_DQN]
+    compared_dict[f"{DQN},{QUOTIENT_DQN}"] = (dqn_perf, discrete_dqn_perf)
 
     for name in variants:
-        if name == "dqn":
+        if name == DQN:
             continue
-        compared_dict[f"{name},discrete-dqn"] = (best_score[name], discrete_dqn_perf)
+        compared_dict[f"{name.replace('-', ' ')},{QUOTIENT_DQN}"] = (
+            best_score[name],
+            discrete_dqn_perf,
+        )
 
     average_probabilities, average_prob_cis = rly.get_interval_estimates(
         compared_dict, metrics.probability_of_improvement, reps=1000
@@ -198,20 +251,18 @@ if __name__ == "__main__":
     plt.savefig(f"{filename}_perf_cmp_discrete_dqn.png", dpi=500)
     plt.show()
 
-    if show_it:
+    if show_it and len(iterations) > 1:
         compared_dict = {}
 
         for name in variants:
-            if name == "dqn" or "viper-" in name:
+            if name == DQN or "{VIPER}-" in name:
                 continue
             base_score = score_dict[f"{name}-d={depths[-1]}-it=1"]
-            all_scores = [
-                score_dict[f"{name}-d={depths[-1]}-it={it}"] for it in iterations[1:]
-            ]
-            some_list = [(np.mean(s), -np.std(s), i) for i, s in enumerate(all_scores)]
-            some_list = sorted(some_list)
-            score = all_scores[some_list[-1][2]]
-            compared_dict[f"max({name}-it>1),{name}-it=1"] = (score, base_score)
+            pte_score = score_dict[f"{name}-d={depths[-1]}-it=2"]
+            compared_dict[f"{name},{name.replace('PTE', 'E')}"] = (
+                pte_score,
+                base_score,
+            )
 
         average_probabilities, average_prob_cis = rly.get_interval_estimates(
             compared_dict, metrics.probability_of_improvement, reps=1000
@@ -226,11 +277,11 @@ if __name__ == "__main__":
     compared_dict = {}
 
     for name in variants:
-        if name == "dqn" or "viper-" not in name:
+        if name == DQN or f"{VIPER}-" not in name:
             continue
         base_score = score_dict[f"{name}-d={depths[-1]}"]
         sub_name = name[6:]
-        compared_dict[f"viper-{sub_name},{sub_name}"] = (
+        compared_dict[f"{VIPER} {sub_name},{sub_name}"] = (
             base_score,
             best_score[sub_name],
         )
