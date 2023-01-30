@@ -43,8 +43,8 @@ def __viper_wrapper__(name: str, build_tree: Callable) -> Callable:
     ) -> DecisionTree[S]:
         new_space = PredicateSpace(space.predicates)
         qtable = QValuesLearner()
-        for s, q, _ in dataset:
-            ps = new_space.get_representative(s)
+        for ps, q, _ in dataset:
+            new_space.add_representative(ps)
             qtable.add_one_visit(ps, q)
         for tree, _ in build_tree(
             new_space,
@@ -120,8 +120,11 @@ def viper(
         done: bool,
     ):
         if not done:
+            pstate = space.get_representative(state, False)
             true_Qvals = Qfun(state)
-            dataset.append((state, true_Qvals, np.max(true_Qvals) - np.min(true_Qvals)))
+            dataset.append(
+                (pstate, true_Qvals, np.max(true_Qvals) - np.min(true_Qvals))
+            )
         return u0
 
     for i in range(iterations):
