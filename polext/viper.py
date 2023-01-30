@@ -120,11 +120,8 @@ def viper(
         done: bool,
     ):
         if not done:
-            pstate = space.get_representative(state, False)
             true_Qvals = Qfun(state)
-            dataset.append(
-                (pstate, true_Qvals, np.max(true_Qvals) - np.min(true_Qvals))
-            )
+            dataset.append((state, true_Qvals, np.max(true_Qvals) - np.min(true_Qvals)))
         return u0
 
     for i in range(iterations):
