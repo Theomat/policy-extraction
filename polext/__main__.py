@@ -1,6 +1,7 @@
 import importlib
 import sys
 from typing import Any, Callable, List, Tuple, Union
+import time
 
 from rich import print
 from rich.text import Text
