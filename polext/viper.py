@@ -3,6 +3,8 @@ from typing import Callable, Generator, List, Optional, Tuple, TypeVar, Union
 
 import numpy as np
 
+import vose
+
 from polext.decision_tree import DecisionTree
 from polext.predicate_space import PredicateSpace
 from polext.q_values_learner import QValuesLearner
@@ -63,12 +65,14 @@ def __viper_wrapper__(name: str, build_tree: Callable) -> Callable:
 
 
 def __resample__(
-    dataset: List[Tuple[Tuple[bool, ...], np.ndarray, float]], rng: np.random.Generator
+    dataset: List[Tuple[Tuple[bool, ...], np.ndarray, float]],
+    seed: Optional[int] = None,
 ) -> List[Tuple[Tuple[bool, ...], np.ndarray, float]]:
-    n = len(dataset)
-    probs = np.array([d for _, __, d in dataset])
+    probs = np.array([d for _, __, d in dataset], dtype=np.double)
     probs /= np.sum(probs)
-    return rng.choice(np.array(dataset, dtype=object), size=n, p=probs, replace=True)  # type: ignore
+    sampler = vose.Sampler(probs, seed=seed)
+    indices = sampler.sample(len(dataset))
+    return np.array(dataset, dtype=object)[indices]
 
 
 def __best_policy__(
@@ -108,7 +112,6 @@ def viper(
     policies = []
 
     basic_tree = __TREE_BUILDING_ALGOS__[method.lower().strip()].method
-    rng = np.random.default_rng(seed)
 
     def my_step(
         u0,
@@ -138,7 +141,8 @@ def viper(
             0,
             seed,
         )
-        dataset_prime = __resample__(dataset, rng)
+        dataset = dataset[-100000:]
+        dataset_prime = __resample__(dataset, seed + i)
         policy = basic_tree(space, dataset_prime, max_depth, env_fn, nenvs, seed)
         policies.append(policy)
 
