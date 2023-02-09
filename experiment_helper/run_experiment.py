@@ -103,13 +103,12 @@ def run_viper(
     methods: str,
     seed: int,
     episodes: int,
-    samples: int,
     env_id: str,
     depth: int,
     iterations: int,
     nenvs: int,
 ) -> dict:
-    cmd = f"python -m polext {env_path} logs_{seed}/dqn/{env_id}_1/best_model.zip {methods} {episodes} --depth {depth} --iterations {iterations} --samples {samples} -n {nenvs} --seed {seed} --viper".split(
+    cmd = f"python -m polext {env_path} logs_{seed}/dqn/{env_id}_1/best_model.zip {methods} {episodes} --depth {depth} --iterations {iterations} --samples {episodes} -n {nenvs} --seed {seed} --viper".split(
         " "
     )
     output = exec_cmd(cmd)
@@ -254,18 +253,6 @@ if __name__ == "__main__":
         default="1",
         help="max number of iterations to test",
     )
-    parser.add_argument(
-        "--viper-iterations",
-        type=str,
-        default="1",
-        help="max number of iterations to test",
-    )
-    parser.add_argument(
-        "--samples",
-        type=str,
-        default="1",
-        help="samples",
-    )
 
     parameters = parser.parse_args()
     env_name: str = parameters.env_name
@@ -275,8 +262,6 @@ if __name__ == "__main__":
     nenvs: int = parameters.n
     output: str = parameters.output
     iterations: int = parameters.iterations
-    viper_iterations: int = parameters.viper_iterations
-    samples: int = parameters.samples
 
     depths = parse_set(parameters.depths)
 
@@ -334,10 +319,9 @@ if __name__ == "__main__":
                     methods,
                     seed,
                     episodes,
-                    samples,
                     env_id,
                     depth,
-                    viper_iterations,
+                    iterations,
                     nenvs,
                 )
                 union(all_data, score_dict)
