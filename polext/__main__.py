@@ -63,12 +63,15 @@ def run_method(
         )
         return
     i = 0
+    start_time = time.time()
     for val in builder(space, Qtable, max_depth, method, seed=seed):
         print("Method:", Text.assemble((method, "bold")), f"iteration {i+1}")
         tree = callback(val, method, i)
         if isinstance(tree, DecisionTree):
             tree.print()
         i += 1
+    used_time = time.time() - start_time
+    print(f"done in {used_time:.2e}s")
     print()
 
 
