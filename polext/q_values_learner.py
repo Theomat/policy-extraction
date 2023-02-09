@@ -94,6 +94,7 @@ class QValuesLearner:
                 self.Qtable[state] += q_def_s
         # Update
         self.visits[state] += 1
+        self._total_visits += 1
         self.Qtable[state][action] += alpha * (
             r + gamma * nval - self.Qtable[state][action]
         )
