@@ -63,9 +63,9 @@ class QValuesLearner:
         alpha: float = 0.01,
         gamma: float = 0.99,
     ):
-        self.learn_qvalues_width_default(state, action, r, next_state, done, alpha, gamma)
+        self.learn_qvalues_with_default(state, action, r, next_state, done, alpha, gamma)
 
-    def learn_qvalues_width_default(
+    def learn_qvalues_with_default(
         self,
         state: Tuple[int, ...],
         action: int,
