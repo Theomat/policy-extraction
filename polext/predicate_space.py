@@ -31,7 +31,7 @@ class PredicateSpace(Generic[S]):
     def get_representative(self, state: S, save: bool = True) -> Tuple[bool, ...]:
         repres = tuple(p(state) for p in self.predicates)
         if save:
-           self.add_representative(repres)
+            self.add_representative(repres)
         return repres
 
     def add_representative(self, repres: Tuple[bool, ...]):
