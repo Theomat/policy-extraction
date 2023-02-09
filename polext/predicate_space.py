@@ -91,3 +91,11 @@ class PredicateSpace(Generic[S]):
                 for p, a in self.predicates_set.items()
             }
             yield sub_space
+
+    def copy(self) -> "PredicateSpace[S]":
+        out = PredicateSpace(self.predicates)
+        out.seen = {x for x in self.seen}
+        out.used = self.used[:]
+        for p in self.predicates:
+            out.predicates_set[p] = {x for x in self.predicates_set[p]}
+        return out
