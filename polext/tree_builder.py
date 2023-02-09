@@ -96,22 +96,24 @@ def __iterate__(
         )
         return
 
-    next_qtable = QValuesLearner()
-    new_space = PredicateSpace(space.predicates)
-
-    replay_buffer = []
-    episodes_length = [0 for _ in range(episodes)]
+    gamma = 0.99
+    alpha = 0.01
 
     def our_step(
         rew: float, ep: int, st: S, Qval: np.ndarray, r: float, stp1: S, done: bool
     ) -> float:
-        episodes_length[ep] += 1
-        ps = new_space.get_representative(st)
-        oracle_q = Qfun(st)
-        next_qtable.add_one_visit(ps, oracle_q)
+        ps = space.get_representative(st)
         action = np.argmax(Qval)
-        replay_buffer.append(
-            (ps, action, r, new_space.get_representative(stp1, False), done)
+        qtable.learn_qvalues_with_default(
+            ps,
+            action,
+            r,
+            space.get_representative(stp1, False),
+            done,
+            alpha,
+            gamma,
+            Qfun(st),
+            Qfun(stp1),
         )
         return rew + r
 
@@ -126,31 +128,13 @@ def __iterate__(
     )
     mu, std = np.mean(total_rewards), 2 * np.std(total_rewards)
     yield (tree, (mu, std))  # type: ignore
-
-    # Learning Q_Value in predicate space
-    mean_length = np.mean(episodes_length)
-    gamma = np.float_power(0.05, 1.0 / mean_length)
-
-    # next_qtable.reset_Q()
-
-    for st, action, r, stp1, done in replay_buffer[::-1]:
-        alpha = 0.25 / next_qtable.state_visits(st)
-        next_qtable.learn_qvalues(st, action, r, stp1, done, alpha, gamma)
-
-    # Mix the two Qtables
-    # next_qtable.mix_with(qtable, 0.5)
-
-    def next_Q(state: S) -> np.ndarray:
-        value = next_qtable[new_space.get_representative(state, False)]
-        return value if value is not None else Qfun(state)
-
     for x in __iterate__(
         builder,
-        new_space,
-        next_qtable,
+        space,
+        qtable,
         max_depth,
         method,
-        Qfun=next_Q,
+        Qfun=Qfun,
         iterations=iterations - 1,
         env_fn=env_fn,
         nenvs=nenvs,
