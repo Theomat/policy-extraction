@@ -109,3 +109,11 @@ class QValuesLearner:
                 self.Qtable[state] = (
                     self[state] * (1 - coefficient) + coefficient * other_q  # type: ignore
                 )
+
+    def copy(self) -> "QValuesLearner":
+        out = QValuesLearner()
+        out.visits = {k: v for k, v in self.visits.items()}
+        out.Qtable = {k: v.copy() for k, v in self.Qtable.items()}
+        out.nactions = self.nactions
+        out._total_visits = self._total_visits
+        return out
