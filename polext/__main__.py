@@ -271,8 +271,8 @@ if __name__ == "__main__":
 
     for method in methods_todo:
         run_method(
-            space,
-            Qtables if ntrees > 1 else total_Qtable,
+            space.copy(),
+            [qt.copy() for qt in Qtables] if ntrees > 1 else total_Qtable.copy(),
             max_depth,
             method,
             seed,
