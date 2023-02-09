@@ -63,13 +63,37 @@ class QValuesLearner:
         alpha: float = 0.01,
         gamma: float = 0.99,
     ):
+        self.learn_qvalues_width_default(state, action, r, next_state, done, alpha, gamma)
+
+    def learn_qvalues_width_default(
+        self,
+        state: Tuple[int, ...],
+        action: int,
+        r: float,
+        next_state: Tuple[int, ...],
+        done: bool,
+        alpha: float = 0.01,
+        gamma: float = 0.99,
+        q_def_s: Optional[np.ndarray] = None,
+        q_def_stp1: Optional[np.ndarray] = None,
+    ):
+        # Next state Q-value
         if not done:
-            nQ = self.Qtable.get(next_state, None)
+            if self.visits.get(next_state, 0) == 0:
+                nQ = q_def_stp1
+            else:
+                nQ = self.Qtable.get(next_state, None)
             nval = np.max(nQ) if nQ is not None else 0
         else:
             nval = 0
+        # Init state Q-value
         if state not in self.Qtable:
             self.Qtable[state] = np.zeros((self.nactions), dtype=float)
+            self.visits[state] = 0
+            if q_def_s:
+                self.Qtable[state] += q_def_s
+        # Update
+        self.visits[state] += 1
         self.Qtable[state][action] += alpha * (
             r + gamma * nval - self.Qtable[state][action]
         )
