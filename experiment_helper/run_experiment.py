@@ -6,6 +6,8 @@ import sys
 
 import tqdm
 
+import numpy as np
+
 envs = ["acrobot", "cart-pole", "pong", "lunar-lander", "mountain-car"]
 
 
@@ -57,7 +59,7 @@ def eval_discrete_dqn(env_path: str, seed: int, episodes: int, nenvs: int) -> di
         if "mean=" in line:
             score_line = line
             break
-    return {f"discrete-dqn": {f"{seed}": extract_score(score_line)}}
+    return {f"discrete-dqn": {f"{seed}": (extract_score(score_line), -1)}}
 
 
 def run_trees(
@@ -71,23 +73,28 @@ def run_trees(
     nenvs: int,
     trees: int = 1,
 ) -> dict:
-    cmd = f"python -m polext {env_path} logs_{seed}/dqn/{env_id}_1/best_model.zip {methods} {episodes} --depth {depth} --iterations {iterations} --forest {trees} -n {nenvs} --seed {seed}".split(
+    cmd = f"python -m polext {env_path} logs_{seed}/dqn/{env_id}_1/best_model.zip {methods} {episodes} --depth {depth} --iterations {iterations} --forest {trees} --samples {episodes} -n {nenvs} --seed {seed}".split(
         " "
     )
     output = exec_cmd(cmd)
     method = "dqn"
-    iteration = -1
     data = {}
+    to_aggregate = []
     for line in output.splitlines():
         if line.startswith("Method:"):
             method = line[len("Method:") :]
             if "iteration" in method:
-                iteration = int(method.split("iteration")[1])
                 method = method[: method.index("iteration")].strip()
         elif "mean=" in line:
-            data[f"{method}-d={depth}-it={iteration}"] = {
-                f"{seed}": extract_score(line)
-            }
+            score = extract_score(line)
+            if method == "dqn":
+                data[f"{method}-d={depth}"] = {f"{seed}": (score, -1)}
+            else:
+                to_aggregate.append(score)
+        elif line.startswith("done in"):
+            time = float(line[len("done in") : -1])
+            data[f"{method}-d={depth}"] = {f"{seed}": (np.max(to_aggregate), time)}
+
     return data
 
 
@@ -107,6 +114,7 @@ def run_viper(
     )
     output = exec_cmd(cmd)
     method = "dqn"
+    score = -9999999999999999999
     data = {}
     for line in output.splitlines():
         if line.startswith("Method:"):
@@ -114,7 +122,10 @@ def run_viper(
             if "iteration" in method:
                 method = method[: method.index("iteration")].strip()
         elif "mean=" in line and method != "dqn":
-            data[f"viper-{method}-d={depth}"] = {f"{seed}": extract_score(line)}
+            score = extract_score(line)
+        elif line.startswith("done in"):
+            time = float(line[len("done in") : -1])
+            data[f"viper-{method}-d={depth}"] = {f"{seed}": (score, time)}
     return data
 
 
@@ -168,8 +179,8 @@ def has_key_for_depth_for_seed(score_dict: dict, depth: int, seed: int) -> bool:
     keys = list(score_dict.keys())
     relevant = set()
     for key in keys:
-        if isinstance(key, str) and "-d=" in key and "-it=" in key:
-            mdepth = int(key[key.find("-d=") + 3 : key.find("-it=")])
+        if isinstance(key, str) and "-d=" in key:
+            mdepth = int(key[key.find("-d=") + 3 :])
             relevant.add(key.replace(f"-d={mdepth}", f"-d={depth}"))
     return (
         all(has_key_for_seed(score_dict, key, seed) for key in relevant)
