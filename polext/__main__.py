@@ -240,7 +240,7 @@ if __name__ == "__main__":
             Qfun=Q,
             env_fn=env_fn,
             nenvs=nenvs,
-            episodes=episodes,
+            episodes=samples,
             iterations=iterations,
             trees=ntrees,
             **kwargs,
