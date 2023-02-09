@@ -90,7 +90,7 @@ class QValuesLearner:
         if state not in self.Qtable:
             self.Qtable[state] = np.zeros((self.nactions), dtype=float)
             self.visits[state] = 0
-            if q_def_s:
+            if q_def_s is not None:
                 self.Qtable[state] += q_def_s
         # Update
         self.visits[state] += 1
