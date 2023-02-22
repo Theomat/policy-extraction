@@ -101,22 +101,22 @@ if __name__ == "__main__":
     # Find base name
     variants = {}
     for method in methods:
-        if "-d=" in method and "-it=" in method:
-            base_name = method[: method.find("-d=")]
-            if base_name not in variants:
-                variants[base_name] = []
-            variants[base_name].append(method)
-
-            depth = int(method[method.find("-d=") + 3 : method.find("-it=")])
-            iteration = int(method[method.find("-it=") + 4 :])
-
-            depths.append(depth)
-            iterations.append(iteration)
         if f"{VIPER}-" in method and "-d=" in method:
             base_name = method[: method.find("-d=")]
             if base_name not in variants:
                 variants[base_name] = []
             variants[base_name].append(method)
+        elif "-d=" in method:
+            base_name = method[: method.find("-d=")]
+            if base_name not in variants:
+                variants[base_name] = []
+            variants[base_name].append(method)
+
+            depth = int(method[method.find("-d=") + 3 :])
+
+            if depth not in depths:
+                depths.append(depth)
+
 
     iterations = sorted(x for x in iterations if x > 0)
     depths = sorted(depths)
@@ -128,10 +128,10 @@ if __name__ == "__main__":
     score_dict = {}
     for name, subnames in variants.items():
         for subname in subnames:
-            score_dict[subname] = np.array(list(all_data[subname].values())).reshape(
+            score_dict[subname] = np.array([ x for x,y in all_data[subname].values()]).reshape(
                 (-1, 1)
             )
-    score_dict[QUOTIENT_DQN] = np.array(list(all_data[QUOTIENT_DQN].values())).reshape(
+    score_dict[QUOTIENT_DQN] = np.array([ x for x,y in all_data[QUOTIENT_DQN].values()]).reshape(
         (-1, 1)
     )
 
