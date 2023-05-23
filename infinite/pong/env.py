@@ -202,6 +202,32 @@ def __ready__(f):
     return g
 
 
+def future_paddle_y(obs: np.ndarray, time: int):
+    y, vy, ay, jy = obs[-4], obs[-3], obs[-2], obs[-1]
+    return y + vy * time + ay / 2 * (time**2) + jy / 6 * (time**3)
+
+
+def when_hit(obs: np.ndarray) -> int:
+    x = obs[0]
+    vx = obs[2]
+    time = 0
+    while x < 1.0:
+        x += vx
+        time += 1
+        if x < 0:
+            vx *= -1
+            x = -x
+    return x
+
+
+def future_ball_y(obs: np.ndarray, time: int):
+    y = obs[0]
+    vy = obs[2]
+    y += vy * time
+    y -= int(y)
+    return y
+
+
 def pred(i: int, val: float):
     def f(s) -> bool:
         return s[i] >= val
@@ -224,6 +250,28 @@ predicates.append(
     Predicate(
         f"paddle too high to hit ball",
         __ready__(lambda obs: obs[1] - obs[4] + BALL_SIZE < 0),
+    )
+)
+
+predicates.append(
+    Predicate(
+        f"paddle when hit too low to hit ball",
+        __ready__(
+            lambda obs: future_ball_y(obs, when_hit(obs))
+            - future_paddle_y(obs, when_hit(obs))
+            > PADDLE_HEIGHT
+        ),
+    )
+)
+predicates.append(
+    Predicate(
+        f"paddle when hit too high to hit ball",
+        __ready__(
+            lambda obs: future_ball_y(obs, when_hit(obs))
+            - future_paddle_y(obs, when_hit(obs))
+            + BALL_SIZE
+            < 0
+        ),
     )
 )
 
