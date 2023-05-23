@@ -253,6 +253,11 @@ if __name__ == "__main__":
         default="1",
         help="max number of iterations to test",
     )
+    parser.add_argument(
+        "--dry",
+        action="store_true",
+        help="Dry run for training",
+    )
 
     parameters = parser.parse_args()
     env_name: str = parameters.env_name
@@ -262,6 +267,9 @@ if __name__ == "__main__":
     nenvs: int = parameters.n
     output: str = parameters.output
     iterations: int = parameters.iterations
+    dry: bool = parameters.dry
+
+    exec_cmd = lambda x: print(" ".join(x))
 
     depths = parse_set(parameters.depths)
 
@@ -283,6 +291,8 @@ if __name__ == "__main__":
         else:
             break
     pbar = tqdm.tqdm(initial=initial, total=seeds, unit="seed")
+    if dry:
+        pbar.close()
 
     for i in range(initial, seeds):
         seed = 2410 * i + 17 * i + i
@@ -291,17 +301,23 @@ if __name__ == "__main__":
             continue
         all_data[seed] = False
         # This part is recoverable from files
-        pbar.set_postfix_str("RL training")
+        if not dry:
+            pbar.set_postfix_str("RL training")
         train_base_dqn(env_id, seed)
         if not has_key_for_seed(all_data, "discrete-dqn", seed):
-            pbar.set_postfix_str("discrete RL training")
+            if not dry:
+                pbar.set_postfix_str("discrete RL training")
             train_discrete_dqn(env_path, seed)
+            if dry:
+                continue
             pbar.set_postfix_str("discrete RL eval")
             score_dict = eval_discrete_dqn(env_path, seed, episodes, nenvs)
             union(all_data, score_dict)
             # Save
             with open(output, "w") as fd:
                 json.dump(all_data, fd)
+        if dry:
+            continue
         for depth in depths:
             if not has_key_for_depth_for_seed(all_data, depth, seed):
                 pbar.set_postfix_str(f"Trees d={depth}")
