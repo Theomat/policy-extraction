@@ -44,7 +44,7 @@ pandas==1.5.1
 pathvalidate==2.5.2
 patsy==0.5.3
 pbr==5.11.0
-Pillow==9.2.0
+Pillow==9.3.0
 pltpublish==1.0.0
 prettytable==3.5.0
 property-cached==1.6.4
