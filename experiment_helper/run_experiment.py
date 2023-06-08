@@ -269,7 +269,8 @@ if __name__ == "__main__":
     iterations: int = parameters.iterations
     dry: bool = parameters.dry
 
-    exec_cmd = lambda x: print(" ".join(x))
+    if dry:
+        exec_cmd = lambda x: print(" ".join(x))
 
     depths = parse_set(parameters.depths)
 
