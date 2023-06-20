@@ -204,12 +204,16 @@ def __ready__(f):
 
 def future_paddle_y(obs: np.ndarray, time: int):
     y, vy, ay, jy = obs[-4], obs[-3], obs[-2], obs[-1]
+    if time < 0:
+        return y
     return y + vy * time + ay / 2 * (time**2) + jy / 6 * (time**3)
 
 
 def when_hit(obs: np.ndarray) -> int:
     x = obs[0]
     vx = obs[2]
+    if abs(vx) <= 0:
+        return -1
     time = 0
     while x < 1.0:
         x += vx
@@ -217,11 +221,15 @@ def when_hit(obs: np.ndarray) -> int:
         if x < 0:
             vx *= -1
             x = -x
+        if time > 1000:
+            print("FAILED x:", x, "vx:", vx, "time:", time)
     return x
 
 
 def future_ball_y(obs: np.ndarray, time: int):
     y = obs[0]
+    if time < 0:
+        return y
     vy = obs[2]
     y += vy * time
     y -= int(y)
