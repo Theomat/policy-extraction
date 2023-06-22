@@ -131,21 +131,29 @@ class VecPongObservationWrapper(VecEnvWrapper):
             dtype=float,
         )
         self.history = []
+        self.last_obs = None
 
     def step_async(self, actions: np.ndarray) -> None:
         return self.venv.step_async(actions)
 
     def step_wait(self) -> VecEnvStepReturn:
-        obs, r, done, info = self.venv.step_wait()
+        obs, r, dones, infos = self.venv.step_wait()
+        for i, done in enumerate(dones):
+            if done:
+                infos[i]["terminal_observation"] = self.last_obs[i]
         pobs = __extract__(obs)
         nobs = __obs__(pobs, self.history)
-        return nobs, r, done, info
+        self.last_obs = nobs
+        return nobs, r, dones, infos
+
+    
 
     def reset(self) -> VecEnvObs:
         obs = self.venv.reset()
         pobs = __extract__(obs)
         self.history = []
         nobs = __obs__(pobs, self.history)
+        self.last_obs = nobs
         return nobs
 
 
