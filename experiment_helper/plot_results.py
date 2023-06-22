@@ -77,9 +77,14 @@ if __name__ == "__main__":
                 all_data[new_name] = all_data[old_name]
                 del all_data[old_name]
         # Remove seeds
-        seeds = list(all_data[QUOTIENT_DQN].keys())
+        seeds = []
+        for key in list(all_data.keys()):
+            if isinstance(all_data[key], dict):
+                seeds = list(all_data[key].keys())
+                break
         for seed in seeds:
-            del all_data[seed]
+            if seed in all_data:
+                del all_data[seed]
         # Finish renaming
         for key in list(all_data.keys()):
             dst_name: str = key
