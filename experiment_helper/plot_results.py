@@ -133,12 +133,13 @@ if __name__ == "__main__":
     score_dict = {}
     for name, subnames in variants.items():
         for subname in subnames:
-            score_dict[subname] = np.array([ x for x,y in all_data[subname].values()]).reshape(
-                (-1, 1)
-            )
-    score_dict[QUOTIENT_DQN] = np.array([ x for x,y in all_data[QUOTIENT_DQN].values()]).reshape(
-        (-1, 1)
-    )
+            score_dict[subname] = np.array(
+                [x for x, y in all_data[subname].values()]
+            ).reshape((-1, 1))
+    if QUOTIENT_DQN in score_dict:
+        score_dict[QUOTIENT_DQN] = np.array(
+            [x for x, y in all_data[QUOTIENT_DQN].values()]
+        ).reshape((-1, 1))
 
     # Delete copies of DQN
     saved = False
@@ -191,7 +192,8 @@ if __name__ == "__main__":
     # matrices for pairs of algorithms we want to compare
     compared_dict = {}
     dqn_perf = score_dict[DQN]
-    compared_dict[f"{QUOTIENT_DQN},{DQN}"] = (score_dict[QUOTIENT_DQN], dqn_perf)
+    if QUOTIENT_DQN in score_dict:
+        compared_dict[f"{QUOTIENT_DQN},{DQN}"] = (score_dict[QUOTIENT_DQN], dqn_perf)
     best_score = {}
     for name in variants:
         if name == DQN:
@@ -213,27 +215,28 @@ if __name__ == "__main__":
     plt.savefig(f"{filename}_perf_cmp_dqn.png", dpi=500)
     plt.show()
 
-    compared_dict = {}
-    discrete_dqn_perf = score_dict[QUOTIENT_DQN]
-    compared_dict[f"{DQN},{QUOTIENT_DQN}"] = (dqn_perf, discrete_dqn_perf)
+    if QUOTIENT_DQN in score_dict:
+        compared_dict = {}
+        discrete_dqn_perf = score_dict[QUOTIENT_DQN]
+        compared_dict[f"{DQN},{QUOTIENT_DQN}"] = (dqn_perf, discrete_dqn_perf)
 
-    for name in variants:
-        if name == DQN:
-            continue
-        compared_dict[f"{name.replace('-', ' ')},{QUOTIENT_DQN}"] = (
-            best_score[name],
-            discrete_dqn_perf,
+        for name in variants:
+            if name == DQN:
+                continue
+            compared_dict[f"{name.replace('-', ' ')},{QUOTIENT_DQN}"] = (
+                best_score[name],
+                discrete_dqn_perf,
+            )
+
+        average_probabilities, average_prob_cis = rly.get_interval_estimates(
+            compared_dict, metrics.probability_of_improvement, reps=1000
         )
-
-    average_probabilities, average_prob_cis = rly.get_interval_estimates(
-        compared_dict, metrics.probability_of_improvement, reps=1000
-    )
-    plot_utils.plot_probability_of_improvement(
-        average_probabilities, average_prob_cis, figsize=(8, 4)
-    )
-    plt.tight_layout()
-    plt.savefig(f"{filename}_perf_cmp_discrete_dqn.png", dpi=500)
-    plt.show()
+        plot_utils.plot_probability_of_improvement(
+            average_probabilities, average_prob_cis, figsize=(8, 4)
+        )
+        plt.tight_layout()
+        plt.savefig(f"{filename}_perf_cmp_discrete_dqn.png", dpi=500)
+        plt.show()
 
     if len(iterations) > 1:
         compared_dict = {}
